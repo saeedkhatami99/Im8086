@@ -26,7 +26,6 @@ private:
     uint16_t getValue(const std::string& operand);
     void initializeInstructions();
 
-    // Instruction implementations
     void mov(std::vector<std::string>& operands);
     void add(std::vector<std::string>& operands);
     void sub(std::vector<std::string>& operands);
