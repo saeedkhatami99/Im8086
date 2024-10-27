@@ -17,7 +17,7 @@ ifeq ($(ARCH), 64)
     ARCH_NAME = 64
 else ifeq ($(ARCH), arm)
     CXXFLAGS += -arch arm64
-    ARCH_NAME = arm64
+    ARCH_NAME = arm
 endif
 
 ifeq ($(OS),Windows_NT)
