@@ -41,20 +41,17 @@ jobs:
           name: 8086emu_${{ matrix.arch }}_${{ matrix.os }}
           path: build/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip
 
-      - name: Set up Git
-        run: |
-          git config --global user.name "Saeed Khatami"
-          git config --global user.email "saeed.khatami.99@gmail.com"
-
       - name: Clone Target Repository
-        run: git clone https://github.com/saeedkhatami/8086emu-bin.git
+        run: |
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/saeedkhatami/8086emu-bin.git
+          cd 8086emu-bin
+          git config user.name "Saeed Khatami"
+          git config user.email "saeed.khatami.99@gmail.com"
 
       - name: Copy and Commit Artifacts
         run: |
-          mkdir -p 8086emu-bin/artifacts
-          cp build/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip 8086emu-bin/artifacts/
+          cp build/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip 8086emu-bin/
           cd 8086emu-bin
-          git add artifacts/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip
+          git add 8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip
           git commit -m "Add new artifacts for ${{ matrix.arch }} on ${{ matrix.os }}"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/saeedkhatami/8086emu-bin.git
-          git push
+          git push origin main
