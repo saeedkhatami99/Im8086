@@ -12,13 +12,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        arch: [32, 64]
+        arch: [64]
         include:
           - os: macos-latest
             arch: arm
-        exclude:
-          - os: macos-latest
-            arch: 32
 
     steps:
       - uses: actions/checkout@v4
@@ -28,12 +25,6 @@ jobs:
           mkdir -p build
           mkdir -p obj
         shell: bash
-
-      - name: Install Dependencies
-        if: matrix.os == 'ubuntu-latest' && matrix.arch == '32'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y g++-multilib
 
       - name: Build
         run: make ARCH=${{ matrix.arch }}
