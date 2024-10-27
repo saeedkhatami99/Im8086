@@ -32,12 +32,6 @@ jobs:
       - name: Create Distribution Package
         run: make distcheck ARCH=${{ matrix.arch }}
 
-      - name: Zip the Distribution Package
-        if: ${{ runner.os != 'Windows' }}
-        run: |
-          zip -j build/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip path/to/your/files/*
-        shell: bash
-
       - name: Upload Distribution Package
         uses: actions/upload-artifact@v3
         with:
