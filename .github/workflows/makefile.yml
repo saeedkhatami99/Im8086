@@ -16,14 +16,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Create Directories
         run: |
           mkdir -p build
           mkdir -p obj
         shell: bash
 
+      - name: Install Dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-multilib
+
       - name: Build
         run: make ARCH=${{ matrix.arch }}
+        
       - name: Create Distribution Package
         run: make distcheck ARCH=${{ matrix.arch }}
