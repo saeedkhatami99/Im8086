@@ -54,4 +54,5 @@ jobs:
           cd 8086emu-bin
           git add 8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip
           git commit -m "Add new artifacts for ${{ matrix.arch }} on ${{ matrix.os }}"
+          git pull --rebase origin main
           git push origin main
