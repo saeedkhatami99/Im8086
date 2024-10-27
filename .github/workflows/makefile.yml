@@ -28,6 +28,12 @@ jobs:
 
       - name: Build
         run: make ARCH=${{ matrix.arch }}
-        
+
       - name: Create Distribution Package
         run: make distcheck ARCH=${{ matrix.arch }}
+
+      - name: Upload Distribution Package
+        uses: actions/upload-artifact@v3
+        with:
+          name: emulator_${{ matrix.arch }}_${{ matrix.os }}
+          path: build/emulator_${{ matrix.arch }}_${{ matrix.os }}.zip
