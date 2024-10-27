@@ -46,13 +46,13 @@ jobs:
       - name: Clone Target Repository
         run: |
           git clone https://github.com/saeedkhatami/8086emu-bin.git
-          cd target-repo
+          cd 8086emu-bin
           mkdir -p artifacts
 
       - name: Copy and Commit Artifacts
         run: |
-          cp build/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip target-repo/artifacts/
-          cd target-repo
+          cp build/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip 8086emu-bin/
+          cd 8086emu-bin
           git add artifacts
           git commit -m "Add new artifacts for ${{ matrix.arch }} on ${{ matrix.os }}"
           git remote set-url origin https://saeedkhatami:${{ secrets.GITHUB_TOKEN }}@github.com/saeedkhatami/8086emu-bin.git
