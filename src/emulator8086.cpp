@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <algorithm>
 #include <stdexcept>
+#include <bitset>
+#include <functional>
 #include "emulator8086.h"
 
 Emulator8086::Emulator8086(size_t memSize) : memory(memSize, 0) {
@@ -10,43 +12,66 @@ Emulator8086::Emulator8086(size_t memSize) : memory(memSize, 0) {
 }
 
 void Emulator8086::initializeInstructions() {
-    instructions["MOV"] = &Emulator8086::mov;
-    instructions["ADD"] = &Emulator8086::add;
-    instructions["SUB"] = &Emulator8086::sub;
-    instructions["PUSH"] = &Emulator8086::push;
-    instructions["POP"] = &Emulator8086::pop;
-    instructions["JMP"] = &Emulator8086::jmp;
-    instructions["CMP"] = &Emulator8086::cmp;
-    instructions["JE"] = &Emulator8086::je;
-    instructions["JNE"] = &Emulator8086::jne;
-    instructions["JG"] = &Emulator8086::jg;
-    instructions["JL"] = &Emulator8086::jl;
-    instructions["INC"] = &Emulator8086::inc;
-    instructions["DEC"] = &Emulator8086::dec;
-    instructions["AND"] = &Emulator8086::and_op;
-    instructions["OR"] = &Emulator8086::or_op;
-    instructions["XOR"] = &Emulator8086::xor_op;
-    instructions["NOT"] = &Emulator8086::not_op;
+    instructions["MOV"] = std::bind(&Emulator8086::mov, this, std::placeholders::_1);
+    instructions["ADD"] = std::bind(&Emulator8086::add, this, std::placeholders::_1);
+    instructions["SUB"] = std::bind(&Emulator8086::sub, this, std::placeholders::_1);
+    instructions["PUSH"] = std::bind(&Emulator8086::push, this, std::placeholders::_1);
+    instructions["POP"] = std::bind(&Emulator8086::pop, this, std::placeholders::_1);
+    instructions["JMP"] = std::bind(&Emulator8086::jmp, this, std::placeholders::_1);
+    instructions["CMP"] = std::bind(&Emulator8086::cmp, this, std::placeholders::_1);
+    instructions["JE"] = std::bind(&Emulator8086::je, this, std::placeholders::_1);
+    instructions["JNE"] = std::bind(&Emulator8086::jne, this, std::placeholders::_1);
+    instructions["JG"] = std::bind(&Emulator8086::jg, this, std::placeholders::_1);
+    instructions["JL"] = std::bind(&Emulator8086::jl, this, std::placeholders::_1);
+    instructions["INC"] = std::bind(&Emulator8086::inc, this, std::placeholders::_1);
+    instructions["DEC"] = std::bind(&Emulator8086::dec, this, std::placeholders::_1);
+    instructions["AND"] = std::bind(&Emulator8086::and_op, this, std::placeholders::_1);
+    instructions["OR"] = std::bind(&Emulator8086::or_op, this, std::placeholders::_1);
+    instructions["XOR"] = std::bind(&Emulator8086::xor_op, this, std::placeholders::_1);
+    instructions["NOT"] = std::bind(&Emulator8086::not_op, this, std::placeholders::_1);
 }
 
 uint16_t& Emulator8086::getRegister(const std::string& reg) {
     std::string upperReg = reg;
     std::transform(upperReg.begin(), upperReg.end(), upperReg.begin(), ::toupper);
-    
-    if (upperReg == "AX") return regs.AX;
-    if (upperReg == "BX") return regs.BX;
-    if (upperReg == "CX") return regs.CX;
-    if (upperReg == "DX") return regs.DX;
+
+    if (upperReg == "AX") return regs.AX.x;
+    if (upperReg == "BX") return regs.BX.x;
+    if (upperReg == "CX") return regs.CX.x;
+    if (upperReg == "DX") return regs.DX.x;
     if (upperReg == "SI") return regs.SI;
     if (upperReg == "DI") return regs.DI;
     if (upperReg == "BP") return regs.BP;
     if (upperReg == "SP") return regs.SP;
-    throw std::runtime_error("Invalid register: " + reg);
+    throw std::runtime_error("Invalid 16-bit register: " + reg);
+}
+
+uint8_t& Emulator8086::getRegister8(const std::string& reg) {
+    std::string upperReg = reg;
+    std::transform(upperReg.begin(), upperReg.end(), upperReg.begin(), ::toupper);
+
+    if (upperReg == "AL") return regs.AX.l;
+    if (upperReg == "AH") return regs.AX.h;
+    if (upperReg == "BL") return regs.BX.l;
+    if (upperReg == "BH") return regs.BX.h;
+    if (upperReg == "CL") return regs.CX.l;
+    if (upperReg == "CH") return regs.CX.h;
+    if (upperReg == "DL") return regs.DX.l;
+    if (upperReg == "DH") return regs.DX.h;
+    throw std::runtime_error("Invalid 8-bit register: " + reg);
+}
+
+bool Emulator8086::is8BitRegister(const std::string& reg) {
+    std::string upperReg = reg;
+    std::transform(upperReg.begin(), upperReg.end(), upperReg.begin(), ::toupper);
+
+    return (upperReg == "AL" || upperReg == "AH" || upperReg == "BL" || upperReg == "BH" ||
+            upperReg == "CL" || upperReg == "CH" || upperReg == "DL" || upperReg == "DH");
 }
 
 MemoryOperand Emulator8086::parseMemoryOperand(const std::string& operand) {
     MemoryOperand result;
-    std::string inner = operand.substr(1, operand.length() - 2); // Remove []
+    std::string inner = operand.substr(1, operand.length() - 2); 
     
     std::vector<std::string> parts;
     std::string current;
@@ -73,7 +98,7 @@ MemoryOperand Emulator8086::parseMemoryOperand(const std::string& operand) {
         
         if (upperPart == "BX") {
             result.hasBase = true;
-            result.base = regs.BX;
+            result.base = regs.BX.x;
         }
         else if (upperPart == "BP") {
             result.hasBase = true;
@@ -164,25 +189,38 @@ void Emulator8086::updateFlags(uint16_t result, bool checkCarry) {
 }
 
 void Emulator8086::mov(std::vector<std::string>& operands) {
-    if (operands.size() != 2) {
-        throw std::runtime_error("MOV requires 2 operands");
-    }
+    if (operands.size() != 2) throw std::runtime_error("MOV requires 2 operands");
 
     const std::string& dest = operands[0];
     const std::string& source = operands[1];
 
+    
+    if (is8BitRegister(dest)) {
+        if (is8BitRegister(source)) {
+            getRegister8(dest) = getRegister8(source);  
+        } else if (!isMemoryOperand(source)) {
+            getRegister8(dest) = static_cast<uint8_t>(getValue(source) & 0xFF);  
+        } else {
+            MemoryOperand memOp = parseMemoryOperand(source);
+            uint16_t address = calculateEffectiveAddress(memOp);
+            getRegister8(dest) = readMemoryByte(address);  
+        }
+        return;
+    }
+
+    
     if (!isMemoryOperand(dest) && !isMemoryOperand(source)) {
-        getRegister(dest) = getValue(source);
+        getRegister(dest) = getValue(source);  
     }
     else if (!isMemoryOperand(dest) && isMemoryOperand(source)) {
         MemoryOperand memOp = parseMemoryOperand(source);
         uint16_t address = calculateEffectiveAddress(memOp);
-        getRegister(dest) = readMemoryWord(address);
+        getRegister(dest) = readMemoryWord(address);  
     }
     else if (isMemoryOperand(dest) && !isMemoryOperand(source)) {
         MemoryOperand memOp = parseMemoryOperand(dest);
         uint16_t address = calculateEffectiveAddress(memOp);
-        writeMemoryWord(address, getValue(source));
+        writeMemoryWord(address, getValue(source));  
     }
     else {
         throw std::runtime_error("Memory to memory MOV is not allowed");
@@ -191,121 +229,209 @@ void Emulator8086::mov(std::vector<std::string>& operands) {
 
 void Emulator8086::add(std::vector<std::string>& operands) {
     if (operands.size() != 2) throw std::runtime_error("ADD requires 2 operands");
-    uint16_t& dest = getRegister(operands[0]);
-    uint32_t result = dest + getValue(operands[1]);
-    dest = result & 0xFFFF;
-    updateFlags(result, true);
+
+    if (is8BitRegister(operands[0])) {
+        uint8_t& dest = getRegister8(operands[0]);
+        uint8_t value = is8BitRegister(operands[1]) ? getRegister8(operands[1]) : (getValue(operands[1]) & 0xFF);
+        uint16_t result = dest + value;
+        dest = result & 0xFF;
+        updateFlags(result, true);  
+    } else {
+        uint16_t& dest = getRegister(operands[0]);
+        uint32_t result = dest + getValue(operands[1]);
+        dest = result & 0xFFFF;
+        updateFlags(result, true);  
+    }
 }
 
 void Emulator8086::sub(std::vector<std::string>& operands) {
     if (operands.size() != 2) throw std::runtime_error("SUB requires 2 operands");
-    uint16_t& dest = getRegister(operands[0]);
-    uint16_t value = getValue(operands[1]);
-    uint32_t result = dest - value;
-    dest = result & 0xFFFF;
-    updateFlags(result, true);
+
+    if (is8BitRegister(operands[0])) {
+        uint8_t& dest = getRegister8(operands[0]);
+        uint8_t value = is8BitRegister(operands[1]) ? getRegister8(operands[1]) : (getValue(operands[1]) & 0xFF);
+        uint16_t result = dest - value;
+        dest = result & 0xFF;
+        updateFlags(result, true);  
+    } else {
+        uint16_t& dest = getRegister(operands[0]);
+        uint32_t result = dest - getValue(operands[1]);
+        dest = result & 0xFFFF;
+        updateFlags(result, true);  
+    }
 }
 
 void Emulator8086::push(std::vector<std::string>& operands) {
     if (operands.size() != 1) throw std::runtime_error("PUSH requires 1 operand");
-    uint16_t value = getValue(operands[0]);
-    regs.SP -= 2;
-    writeMemoryWord(regs.SP, value);
+
+    if (is8BitRegister(operands[0])) {
+        throw std::runtime_error("PUSH cannot operate on 8-bit registers");
+    } else {
+        uint16_t value = getValue(operands[0]);
+        regs.SP -= 2;
+        writeMemoryWord(regs.SP, value);
+    }
 }
 
 void Emulator8086::pop(std::vector<std::string>& operands) {
     if (operands.size() != 1) throw std::runtime_error("POP requires 1 operand");
-    uint16_t value = readMemoryWord(regs.SP);
-    getRegister(operands[0]) = value;
-    regs.SP += 2;
+
+    if (is8BitRegister(operands[0])) {
+        throw std::runtime_error("POP cannot operate on 8-bit registers");
+    } else {
+        uint16_t& dest = getRegister(operands[0]);
+        dest = readMemoryWord(regs.SP);
+        regs.SP += 2;
+    }
 }
 
 void Emulator8086::cmp(std::vector<std::string>& operands) {
     if (operands.size() != 2) throw std::runtime_error("CMP requires 2 operands");
-    uint16_t value1 = getValue(operands[0]);
-    uint16_t value2 = getValue(operands[1]);
-    uint32_t result = value1 - value2;
-    updateFlags(result, true);
+
+    if (is8BitRegister(operands[0])) {
+        uint8_t value1 = getRegister8(operands[0]);
+        uint8_t value2 = is8BitRegister(operands[1]) ? getRegister8(operands[1]) : (getValue(operands[1]) & 0xFF);
+        uint16_t result = value1 - value2;
+        updateFlags(result, true);  
+    } else {
+        uint16_t value1 = getRegister(operands[0]);
+        uint16_t value2 = getValue(operands[1]);
+        uint32_t result = value1 - value2;
+        updateFlags(result, true);  
+    }
 }
 
 void Emulator8086::jmp(std::vector<std::string>& operands) {
     if (operands.size() != 1) throw std::runtime_error("JMP requires 1 operand");
-    if (labels.find(operands[0]) == labels.end()) {
-        throw std::runtime_error("Label not found: " + operands[0]);
-    }
-    regs.IP = labels[operands[0]];
+
+    regs.IP = getValue(operands[0]);
 }
 
 void Emulator8086::je(std::vector<std::string>& operands) {
     if (operands.size() != 1) throw std::runtime_error("JE requires 1 operand");
+
     if (regs.FLAGS & Registers::ZF) {
-        jmp(operands);
+        regs.IP = getValue(operands[0]);
     }
 }
 
 void Emulator8086::jne(std::vector<std::string>& operands) {
     if (operands.size() != 1) throw std::runtime_error("JNE requires 1 operand");
+
     if (!(regs.FLAGS & Registers::ZF)) {
-        jmp(operands);
+        regs.IP = getValue(operands[0]);
     }
 }
 
 void Emulator8086::jg(std::vector<std::string>& operands) {
     if (operands.size() != 1) throw std::runtime_error("JG requires 1 operand");
-    if (!(regs.FLAGS & Registers::ZF) && 
-        ((regs.FLAGS & Registers::SF) == (regs.FLAGS & Registers::OF))) {
-        jmp(operands);
+
+    if (!(regs.FLAGS & Registers::ZF) && !(regs.FLAGS & Registers::SF)) {
+        regs.IP = getValue(operands[0]);
     }
 }
 
 void Emulator8086::jl(std::vector<std::string>& operands) {
     if (operands.size() != 1) throw std::runtime_error("JL requires 1 operand");
-    if ((regs.FLAGS & Registers::SF) != (regs.FLAGS & Registers::OF)) {
-        jmp(operands);
+
+    if (regs.FLAGS & Registers::SF) {
+        regs.IP = getValue(operands[0]);
     }
 }
 
 void Emulator8086::inc(std::vector<std::string>& operands) {
     if (operands.size() != 1) throw std::runtime_error("INC requires 1 operand");
-    uint16_t& dest = getRegister(operands[0]);
-    uint32_t result = dest + 1;
-    dest = result & 0xFFFF;
-    updateFlags(result, true);
+
+    if (is8BitRegister(operands[0])) {
+        uint8_t& dest = getRegister8(operands[0]);
+        uint16_t result = dest + 1;
+        dest = result & 0xFF;
+        updateFlags(result, true);  
+    } else {
+        uint16_t& dest = getRegister(operands[0]);
+        uint32_t result = dest + 1;
+        dest = result & 0xFFFF;
+        updateFlags(result, true);  
+    }
 }
 
 void Emulator8086::dec(std::vector<std::string>& operands) {
     if (operands.size() != 1) throw std::runtime_error("DEC requires 1 operand");
-    uint16_t& dest = getRegister(operands[0]);
-    uint32_t result = dest - 1;
-    dest = result & 0xFFFF;
-    updateFlags(result, true);
+
+    if (is8BitRegister(operands[0])) {
+        uint8_t& dest = getRegister8(operands[0]);
+        uint16_t result = dest - 1;
+        dest = result & 0xFF;
+        updateFlags(result, true);  
+    } else {
+        uint16_t& dest = getRegister(operands[0]);
+        uint32_t result = dest - 1;
+        dest = result & 0xFFFF;
+        updateFlags(result, true);  
+    }
 }
 
 void Emulator8086::and_op(std::vector<std::string>& operands) {
     if (operands.size() != 2) throw std::runtime_error("AND requires 2 operands");
-    uint16_t& dest = getRegister(operands[0]);
-    dest &= getValue(operands[1]);
-    updateFlags(dest, false);
+
+    if (is8BitRegister(operands[0])) {
+        uint8_t& dest = getRegister8(operands[0]);
+        uint8_t value = is8BitRegister(operands[1]) ? getRegister8(operands[1]) : (getValue(operands[1]) & 0xFF);
+        uint16_t result = dest & value;
+        dest = result & 0xFF;
+        updateFlags(result, false);  
+    } else {
+        uint16_t& dest = getRegister(operands[0]);
+        uint32_t result = dest & getValue(operands[1]);
+        dest = result & 0xFFFF;
+        updateFlags(result, false);  
+    }
 }
 
 void Emulator8086::or_op(std::vector<std::string>& operands) {
     if (operands.size() != 2) throw std::runtime_error("OR requires 2 operands");
-    uint16_t& dest = getRegister(operands[0]);
-    dest |= getValue(operands[1]);
-    updateFlags(dest, false);
+
+    if (is8BitRegister(operands[0])) {
+        uint8_t& dest = getRegister8(operands[0]);
+        uint8_t value = is8BitRegister(operands[1]) ? getRegister8(operands[1]) : (getValue(operands[1]) & 0xFF);
+        uint16_t result = dest | value;
+        dest = result & 0xFF;
+        updateFlags(result, false);  
+    } else {
+        uint16_t& dest = getRegister(operands[0]);
+        uint32_t result = dest | getValue(operands[1]);
+        dest = result & 0xFFFF;
+        updateFlags(result, false);  
+    }
 }
 
 void Emulator8086::xor_op(std::vector<std::string>& operands) {
     if (operands.size() != 2) throw std::runtime_error("XOR requires 2 operands");
-    uint16_t& dest = getRegister(operands[0]);
-    dest ^= getValue(operands[1]);
-    updateFlags(dest, false);
+
+    if (is8BitRegister(operands[0])) {
+        uint8_t& dest = getRegister8(operands[0]);
+        uint8_t value = is8BitRegister(operands[1]) ? getRegister8(operands[1]) : (getValue(operands[1]) & 0xFF);
+        uint16_t result = dest ^ value;
+        dest = result & 0xFF;
+        updateFlags(result, false);  
+    } else {
+        uint16_t& dest = getRegister(operands[0]);
+        uint32_t result = dest ^ getValue(operands[1]);
+        dest = result & 0xFFFF;
+        updateFlags(result, false);  
+    }
 }
 
 void Emulator8086::not_op(std::vector<std::string>& operands) {
     if (operands.size() != 1) throw std::runtime_error("NOT requires 1 operand");
-    uint16_t& dest = getRegister(operands[0]);
-    dest = ~dest;
+
+    if (is8BitRegister(operands[0])) {
+        uint8_t& dest = getRegister8(operands[0]);
+        dest = ~dest;
+    } else {
+        uint16_t& dest = getRegister(operands[0]);
+        dest = ~dest;
+    }
 }
 
 void Emulator8086::executeInstruction(const std::string& instruction) {
@@ -318,7 +444,7 @@ void Emulator8086::executeInstruction(const std::string& instruction) {
     std::vector<std::string> operands;
     std::string operand;
     while (std::getline(iss >> std::ws, operand, ',')) {
-        // Remove leading/trailing whitespace
+        
         operand.erase(0, operand.find_first_not_of(" \t"));
         operand.erase(operand.find_last_not_of(" \t") + 1);
         operands.push_back(operand);
@@ -329,21 +455,51 @@ void Emulator8086::executeInstruction(const std::string& instruction) {
         throw std::runtime_error("Unknown instruction: " + opcode);
     }
     
-    (this->*(it->second))(operands);
+    
+    it->second(operands);
+}
+
+std::string toBinaryString(uint16_t value) {
+    return std::bitset<16>(value).to_string();  
 }
 
 void Emulator8086::displayRegisters() {
     std::cout << std::hex << std::uppercase << std::setfill('0')
-              << "AX=" << std::setw(4) << regs.AX << " "
-              << "BX=" << std::setw(4) << regs.BX << " "
-              << "CX=" << std::setw(4) << regs.CX << " "
-              << "DX=" << std::setw(4) << regs.DX << "\n"
-              << "SI=" << std::setw(4) << regs.SI << " "
-              << "DI=" << std::setw(4) << regs.DI << " "
-              << "BP=" << std::setw(4) << regs.BP << " "
-              << "SP=" << std::setw(4) << regs.SP << "\n"
-              << "FLAGS=" << std::setw(4) << regs.FLAGS << " "
-              << "IP=" << std::setw(4) << regs.IP << "\n";
+              << "AX=" << toBinaryString(regs.AX.x) << " (AH=" << toBinaryString(regs.AX.h)
+              << ", AL=" << toBinaryString(regs.AX.l) << ")\n"
+              << "BX=" << toBinaryString(regs.BX.x) << " (BH=" << toBinaryString(regs.BX.h)
+              << ", BL=" << toBinaryString(regs.BX.l) << ")\n"
+              << "CX=" << toBinaryString(regs.CX.x) << " (CH=" << toBinaryString(regs.CX.h)
+              << ", CL=" << toBinaryString(regs.CX.l) << ")\n"
+              << "DX=" << toBinaryString(regs.DX.x) << " (DH=" << toBinaryString(regs.DX.h)
+              << ", DL=" << toBinaryString(regs.DX.l) << ")\n"
+              << "SI=" << toBinaryString(regs.SI) << "  "
+              << "DI=" << toBinaryString(regs.DI) << "  "
+              << "BP=" << toBinaryString(regs.BP) << "  "
+              << "SP=" << toBinaryString(regs.SP) << "\n"
+              << "CS=" << toBinaryString(regs.CS) << "  "
+              << "DS=" << toBinaryString(regs.DS) << "  "
+              << "ES=" << toBinaryString(regs.ES) << "  "
+              << "SS=" << toBinaryString(regs.SS) << "\n"
+              << "IP=" << toBinaryString(regs.IP) << "  "
+              << "FLAGS=" << std::bitset<16>(regs.FLAGS)  
+              << " [" << (regs.FLAGS & Registers::OF ? "O" : "-")
+                     << (regs.FLAGS & Registers::DF ? "D" : "-")
+                     << (regs.FLAGS & Registers::IF ? "I" : "-")
+                     << (regs.FLAGS & Registers::TF ? "T" : "-")
+                     << (regs.FLAGS & Registers::SF ? "S" : "-")
+                     << (regs.FLAGS & Registers::ZF ? "Z" : "-")
+                     << (regs.FLAGS & Registers::AF ? "A" : "-")
+                     << (regs.FLAGS & Registers::PF ? "P" : "-")
+                     << (regs.FLAGS & Registers::CF ? "C" : "-")
+              << "]\n";
+}
+
+uint8_t Emulator8086::getValue8(const std::string& operand) {
+    if (operand[0] >= '0' && operand[0] <= '9') {
+        return std::stoi(operand, nullptr, 16) & 0xFF;
+    }
+    return getRegister8(operand);
 }
 
 void Emulator8086::displayHelp() {
@@ -366,24 +522,28 @@ void Emulator8086::displayHelp() {
     std::cout << "16. NOT <operand>               - Performs bitwise NOT on the operand\n";
 }
 
-void Emulator8086::displayMemory(uint16_t start, uint16_t count) {
-    for (uint16_t i = 0; i < count; i += 16) {
-        std::cout << std::hex << std::uppercase << std::setfill('0')
-                  << std::setw(4) << start + i << ": ";
-        
-        for (uint16_t j = 0; j < 16 && (i + j) < count; j++) {
-            std::cout << std::setw(2) << static_cast<int>(memory[start + i + j]) << " ";
+void Emulator8086::displayMemory(uint16_t address, uint16_t count) {
+    std::cout << "\nMemory dump from " << std::hex << std::uppercase 
+              << std::setfill('0') << std::setw(4) << address << ":\n";
+              
+    for (uint16_t i = 0; i < count; i++) {
+        if (i % 16 == 0) {
+            std::cout << std::setw(4) << (address + i) << ": ";
         }
-        std::cout << "\n";
+        
+        std::cout << std::setw(2) << static_cast<int>(memory[address + i]) << ' ';
+        
+        if (i % 16 == 15 || i == count - 1) {
+            std::cout << '\n';
+        }
     }
 }
 
-void Emulator8086::displayStack(int count) {
-    std::cout << "Stack:\n";
-    for (int i = 0; i < count && regs.SP + i < 0xFFFE; i += 2) {
-        uint16_t value = readMemoryWord(regs.SP + i);
+void Emulator8086::displayStack() {
+    std::cout << "\nStack contents:\n";
+    for (uint16_t i = regs.SP; i < 0xFFFE; i += 2) {
         std::cout << std::hex << std::uppercase << std::setfill('0')
-                  << "SP+" << std::setw(4) << i << ": "
-                  << std::setw(4) << value << "\n";
+                  << "SP+" << std::setw(4) << (i - regs.SP) << ": "
+                  << std::setw(4) << readMemoryWord(i) << '\n';
     }
 }

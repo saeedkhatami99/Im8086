@@ -1,7 +1,7 @@
 #include "registers.h"
 
 Registers::Registers() {
-    AX = BX = CX = DX = 0;
+    AX.x = BX.x = CX.x = DX.x = 0;
     SI = DI = 0;
     BP = 0;
     SP = 0xFFFE;

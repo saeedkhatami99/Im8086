@@ -44,8 +44,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 clean:
 ifeq ($(OS),Windows_NT)
 	@if exist "$(BUILD_DIR)" $(RM_DIR) "$(BUILD_DIR)"
+	@if exist "$(OBJ_DIR)" $(RM_DIR) "$(OBJ_DIR)"
 else
 	$(RM_DIR) $(BUILD_DIR)
+	$(RM_DIR) $(OBJ_DIR)
 endif
 
 .PHONY: all clean make_directories

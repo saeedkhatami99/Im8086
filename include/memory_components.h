@@ -12,8 +12,8 @@ struct MemoryAddress {
 };
 
 struct MemoryOperand {
-    uint16_t base;     // BX, BP
-    uint16_t index;    // SI, DI
+    uint16_t base;     
+    uint16_t index;    
     int16_t displacement;
     bool hasBase;
     bool hasIndex;
