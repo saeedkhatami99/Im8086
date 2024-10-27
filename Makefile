@@ -28,7 +28,7 @@ else
     OS_NAME = linux
 endif
 
-ZIP_NAME = emulator_$(ARCH_NAME)_$(OS_NAME).zip
+ZIP_NAME = 8086emu_$(ARCH_NAME)_$(OS_NAME).zip
 
 SRC_DIR = src
 INC_DIR = include
@@ -36,7 +36,7 @@ BUILD_DIR = build
 OBJ_DIR = obj
 SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SOURCES))
-EXECUTABLE = $(BUILD_DIR)/emulator$(EXE)
+EXECUTABLE = $(BUILD_DIR)/8086emu$(EXE)
 
 ifeq ($(OS),Darwin)
     ifeq ($(ARCH), 64)

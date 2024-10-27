@@ -35,5 +35,5 @@ jobs:
       - name: Upload Distribution Package
         uses: actions/upload-artifact@v3
         with:
-          name: emulator_${{ matrix.arch }}_${{ matrix.os }}
-          path: build/emulator_${{ matrix.arch }}_${{ matrix.os }}.zip
+          name: 8086emu_${{ matrix.arch }}_${{ matrix.os }}
+          path: build/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip
