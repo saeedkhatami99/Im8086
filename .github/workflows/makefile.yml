@@ -65,7 +65,7 @@ jobs:
       - name: Copy Artifacts to Root
         run: |
           cd 8086emu-bin
-          mv artifacts/* .
+          mv artifacts/*.zip .
           git add .
           git commit -m "Add new artifacts from all builds"
 
