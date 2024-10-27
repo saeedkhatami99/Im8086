@@ -21,11 +21,11 @@ else ifeq ($(ARCH), arm)
 endif
 
 ifeq ($(OS),Windows_NT)
-    OS_NAME = win-latest
+    OS_NAME = windows-latest
 else ifeq ($(shell uname),Darwin)
-    OS_NAME = mac-latest
+    OS_NAME = macos-latest
 else
-    OS_NAME = linux-latest
+    OS_NAME = ubuntu-latest
 endif
 
 ZIP_NAME = 8086emu_$(ARCH_NAME)_$(OS_NAME).zip
