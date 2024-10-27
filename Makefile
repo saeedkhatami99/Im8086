@@ -15,9 +15,12 @@ CXXFLAGS = -Wall -std=c++11 -I./include
 ifeq ($(ARCH), 64)
     CXXFLAGS += -m64
     ARCH_NAME = x86-64
-else
+else ifeq ($(ARCH), 32)
     CXXFLAGS += -m32
     ARCH_NAME = x86
+else ifeq ($(ARCH), arm)
+    CXXFLAGS += -arch arm64
+    ARCH_NAME = arm64
 endif
 
 ifeq ($(OS),Windows_NT)
@@ -37,6 +40,16 @@ OBJ_DIR = obj
 SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SOURCES))
 EXECUTABLE = $(BUILD_DIR)/emulator$(EXE)
+
+ifeq ($(OS),Darwin)
+    ifeq ($(ARCH), 32)
+        CXXFLAGS += -arch i386
+    else ifeq ($(ARCH), 64)
+        CXXFLAGS += -arch x86_64
+    else ifeq ($(ARCH), arm)
+        CXXFLAGS += -arch arm64
+    endif
+endif
 
 all: $(EXECUTABLE)
 
