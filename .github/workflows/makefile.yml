@@ -62,8 +62,8 @@ jobs:
           git commit -m "Add new artifacts for ${{ matrix.arch }} on ${{ matrix.os }}"
           git push
 
-      env:
-        REPO_URL: https://saeedkhatami:${{ secrets.TARGET_REPO_PAT }}@github.com/saeedkhatami/8086emu-bin.git
+        env:
+          REPO_URL: https://saeedkhatami:${{ secrets.TARGET_REPO_PAT }}@github.com/saeedkhatami/8086emu-bin.git
 
       - name: Push Changes
         run: |
