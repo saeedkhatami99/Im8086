@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: Make
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
         shell: bash
 
       - name: Print Environment Variables
-      run: env
+        run: env
 
       - name: Build
         run: make ARCH=${{ matrix.arch }}
