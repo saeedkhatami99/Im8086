@@ -26,11 +26,20 @@ jobs:
           mkdir -p obj
         shell: bash
 
+      - name: Print Environment Variables
+      run: env
+
       - name: Build
         run: make ARCH=${{ matrix.arch }}
 
+      - name: List Contents Post-Build
+      run: ls -la build
+
       - name: Create Distribution Package
         run: make distcheck ARCH=${{ matrix.arch }}
+
+      - name: List Contents Post-Distcheck
+      run: ls -la build
 
       - name: Upload Distribution Package
         uses: actions/upload-artifact@v4

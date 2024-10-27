@@ -56,10 +56,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 check:
 	@echo "Running tests..."
-	# Add commands to run your tests here
 
 distcheck:
 	@echo "Creating distribution package..."
+	@echo "Target ZIP file: $(BUILD_DIR)/$(ZIP_NAME)"
 	$(ZIP)
 	@echo "Distribution package created: $(BUILD_DIR)/$(ZIP_NAME)"
 
