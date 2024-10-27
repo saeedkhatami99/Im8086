@@ -33,7 +33,7 @@ jobs:
         run: make distcheck ARCH=${{ matrix.arch }}
 
       - name: Upload Distribution Package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: 8086emu_${{ matrix.arch }}_${{ matrix.os }}
           path: build/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip
