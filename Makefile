@@ -42,12 +42,12 @@ OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SOURCES))
 EXECUTABLE = $(BUILD_DIR)/emulator$(EXE)
 
 ifeq ($(OS),Darwin)
-    ifeq ($(ARCH), 32)
-        CXXFLAGS += -arch i386
-    else ifeq ($(ARCH), 64)
+    ifeq ($(ARCH), 64)
         CXXFLAGS += -arch x86_64
     else ifeq ($(ARCH), arm)
         CXXFLAGS += -arch arm64
+    else ifeq ($(ARCH), 32)
+        $(error "32-bit builds are not supported on macOS.")
     endif
 endif
 
