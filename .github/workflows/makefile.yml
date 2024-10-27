@@ -26,9 +26,6 @@ jobs:
           mkdir -p obj
         shell: bash
 
-      - name: Print Environment Variables
-        run: env
-
       - name: Build
         run: make ARCH=${{ matrix.arch }}
 
