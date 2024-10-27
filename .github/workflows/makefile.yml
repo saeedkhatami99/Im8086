@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     runs-on: ${{ matrix.os }}
@@ -48,10 +51,10 @@ jobs:
 
       - name: Copy and Commit Artifacts
         run: |
-          mkdir 8086emu-bin/artifacts
+          mkdir -p 8086emu-bin/artifacts
           cp build/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip 8086emu-bin/artifacts/
           cd 8086emu-bin
           git add artifacts/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip
           git commit -m "Add new artifacts for ${{ matrix.arch }} on ${{ matrix.os }}"
-          git remote set-url origin https://saeedkhatami:${{ secrets.GITHUB_TOKEN }}@github.com/saeedkhatami/8086emu-bin.git
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/saeedkhatami/8086emu-bin.git
           git push
