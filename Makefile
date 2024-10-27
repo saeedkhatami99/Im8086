@@ -14,6 +14,10 @@ endif
 
 CXXFLAGS = -Wall -std=c++11 -I./include
 
+ifeq ($(shell uname),Darwin)
+    CXXFLAGS += -mmacosx-version-min=10.15
+endif
+
 SRC_DIR = src
 INC_DIR = include
 BUILD_DIR = build
@@ -21,9 +25,6 @@ OBJ_DIR = obj
 SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SOURCES))
 EXECUTABLE = $(BUILD_DIR)/emulator$(EXE)
-
-# $(info SOURCES: $(SOURCES))
-# $(info OBJECTS: $(OBJECTS))
 
 all: make_directories $(EXECUTABLE)
 
