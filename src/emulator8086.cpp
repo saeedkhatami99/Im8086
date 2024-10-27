@@ -346,6 +346,26 @@ void Emulator8086::displayRegisters() {
               << "IP=" << std::setw(4) << regs.IP << "\n";
 }
 
+void Emulator8086::displayHelp() {
+    std::cout << "Supported Instructions:\n";
+    std::cout << "1. ADD <operand1>, <operand2>  - Adds the two operands\n";
+    std::cout << "2. SUB <operand1>, <operand2>  - Subtracts operand2 from operand1\n";
+    std::cout << "3. PUSH <operand>              - Pushes the operand onto the stack\n";
+    std::cout << "4. POP <operand>               - Pops the value from the stack into the operand\n";
+    std::cout << "5. CMP <operand1>, <operand2>  - Compares two operands\n";
+    std::cout << "6. JMP <label>                 - Jumps to the specified label\n";
+    std::cout << "7. JE <label>                  - Jumps to the label if the zero flag is set\n";
+    std::cout << "8. JNE <label>                 - Jumps to the label if the zero flag is not set\n";
+    std::cout << "9. JG <label>                  - Jumps to the label if greater\n";
+    std::cout << "10. JL <label>                 - Jumps to the label if less\n";
+    std::cout << "11. INC <operand>              - Increments the operand by 1\n";
+    std::cout << "12. DEC <operand>              - Decrements the operand by 1\n";
+    std::cout << "13. AND <operand1>, <operand2> - Performs bitwise AND on the operands\n";
+    std::cout << "14. OR <operand1>, <operand2>  - Performs bitwise OR on the operands\n";
+    std::cout << "15. XOR <operand1>, <operand2> - Performs bitwise XOR on the operands\n";
+    std::cout << "16. NOT <operand>               - Performs bitwise NOT on the operand\n";
+}
+
 void Emulator8086::displayMemory(uint16_t start, uint16_t count) {
     for (uint16_t i = 0; i < count; i += 16) {
         std::cout << std::hex << std::uppercase << std::setfill('0')

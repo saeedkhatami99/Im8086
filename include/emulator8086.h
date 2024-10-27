@@ -50,6 +50,7 @@ public:
     void executeInstruction(const std::string& instruction);
     void displayRegisters();
     void displayMemory(uint16_t start, uint16_t count);
+    void displayHelp();
     void displayStack(int count = 8);
 };
 

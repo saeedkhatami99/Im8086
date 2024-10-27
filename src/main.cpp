@@ -9,6 +9,7 @@ int main() {
 
     std::cout << "8086 Emulator\n";
     std::cout << "Commands:\n";
+    std::cout << "  '?' - display help\n";
     std::cout << "  'reg' - display registers\n";
     std::cout << "  'stack' - display stack\n";
     std::cout << "  'mem ADDR COUNT' - display memory (e.g., 'mem 100 128')\n";
@@ -20,6 +21,10 @@ int main() {
         std::getline(std::cin, input);
 
         if (input == "exit") break;
+        if (input == "?"){
+            emu.displayHelp();
+            continue;
+        }
         if (input == "reg") {
             emu.displayRegisters();
             continue;
