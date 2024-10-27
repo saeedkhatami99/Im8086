@@ -17,15 +17,15 @@ ifeq ($(ARCH), 64)
     ARCH_NAME = 64
 else ifeq ($(ARCH), arm)
     CXXFLAGS += -arch arm64
-    ARCH_NAME = arm
+    ARCH_NAME = arm64
 endif
 
 ifeq ($(OS),Windows_NT)
-    OS_NAME = windows-latest
+    OS_NAME = win-latest
 else ifeq ($(shell uname),Darwin)
-    OS_NAME = macos-latest
+    OS_NAME = mac-latest
 else
-    OS_NAME = ubuntu-latest
+    OS_NAME = linux-latest
 endif
 
 ZIP_NAME = 8086emu_$(ARCH_NAME)_$(OS_NAME).zip
@@ -49,18 +49,18 @@ endif
 all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-    $(CXX) $(OBJECTS) -o $(EXECUTABLE)
+	$(CXX) $(OBJECTS) -o $(EXECUTABLE)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-    $(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 check:
-    @echo "Running tests..."
+	@echo "Running tests..."
 
 distcheck:
-    @echo "Creating distribution package..."
-    @echo "Target ZIP file: $(BUILD_DIR)/$(ZIP_NAME)"
-    $(ZIP)
-    @echo "Distribution package created: $(BUILD_DIR)/$(ZIP_NAME)"
+	@echo "Creating distribution package..."
+	@echo "Target ZIP file: $(BUILD_DIR)/$(ZIP_NAME)"
+	$(ZIP)
+	@echo "Distribution package created: $(BUILD_DIR)/$(ZIP_NAME)"
 
 .PHONY: all check distcheck
