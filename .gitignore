@@ -2,4 +2,5 @@
 build
 obj
 -p
-Makefile.temp
+*.temp
+*.bat
