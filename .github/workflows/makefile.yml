@@ -15,17 +15,10 @@ jobs:
         arch: [32, 64]
         include:
           - os: macos-latest
-            arch: 64
-          - os: macos-latest
             arch: arm
-          - os: ubuntu-latest
+        exclude:
+          - os: macos-latest
             arch: 32
-          - os: ubuntu-latest
-            arch: 64
-          - os: windows-latest
-            arch: 32
-          - os: windows-latest
-            arch: 64
 
     steps:
       - uses: actions/checkout@v4
