@@ -1,0 +1,41 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make
+        run: make
+      - name: Make Check
+        run: make check
+      - name: Make Distcheck
+        run: make distcheck
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make
+        run: make
+      - name: Make Check
+        run: make check
+      - name: Make Distcheck
+        run: make distcheck
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make
+        run: mingw32-make # Use appropriate make command for Windows
+      - name: Make Check
+        run: mingw32-make check # Adjust for your check command if necessary
+      - name: Make Distcheck
+        run: mingw32-make distcheck # Adjust for your distcheck command if necessary
