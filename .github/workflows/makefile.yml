@@ -48,7 +48,8 @@ jobs:
 
       - name: Copy and Commit Artifacts
         run: |
-          cp build/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip 8086emu-bin/
+          mkdir 8086emu-bin/artifacts
+          cp build/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip 8086emu-bin/artifacts/
           cd 8086emu-bin
           git add artifacts/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip
           git commit -m "Add new artifacts for ${{ matrix.arch }} on ${{ matrix.os }}"
