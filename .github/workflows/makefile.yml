@@ -43,7 +43,7 @@ jobs:
 
       - name: Clone Target Repository
         run: |
-          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/saeedkhatami/8086emu-bin.git
+          git clone https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/saeedkhatami/8086emu-bin.git
           cd 8086emu-bin
           git config user.name "Saeed Khatami"
           git config user.email "saeed.khatami.99@gmail.com"
