@@ -3,33 +3,21 @@
 
 #include <cstdint>
 
-union Register16
-{
+union Register16 {
     uint16_t x;
-    struct
-    {
+    struct {
         uint8_t l;
         uint8_t h;
     };
 };
 
-class Registers
-{
+class Registers {
 public:
     Register16 AX, BX, CX, DX;
     uint16_t SI, DI, BP, SP;
     uint16_t CS, DS, ES, SS;
     uint16_t IP;
     uint16_t FLAGS;
-
-    struct Flags
-    {
-        bool CF;
-        bool ZF;
-        bool SF;
-        bool OF;
-        // for now we are tinkering with this flags
-    } flags;
 
     static const uint16_t CF = 0x0001;
     static const uint16_t PF = 0x0004;
@@ -41,8 +29,7 @@ public:
     static const uint16_t DF = 0x0400;
     static const uint16_t OF = 0x0800;
 
-    Registers()
-    {
+    Registers() {
         AX.x = BX.x = CX.x = DX.x = 0;
         SI = DI = BP = 0;
         SP = 0xFFFE;
