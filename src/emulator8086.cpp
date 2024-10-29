@@ -547,3 +547,142 @@ void Emulator8086::displayStack() {
                   << std::setw(4) << readMemoryWord(i) << '\n';
     }
 }
+
+// todo
+// that we need to add all instructions to the emulator.
+// replace decimal number instead of hex, but If you want to use hex numbers add `h` at the end of Oprand
+// something like mov ax, 20h. it moves 20 in hex to ax but mov ax, 20. it moves 20 in decimal to ax
+// show registers in hex. FFFFFFFFFFFFFFFF
+// add flag support in instructions
+
+// this is not important, but we can use to seprate our instructions to their files. 
+// like for add we should, create two files. header file and source file. (add.h, add.cpp) 
+
+// we need label support, in order to do that we should create a command like make or compile to 
+// compiles and store data, like our asm code.
+
+// after that we can use it like an IDE for practicing 8086 asm
+// supporting DOS application (no need to emulate DOS for running these codes)
+
+// add ImGui to the application, like Imhex app.
+
+// I think we can cooooooooook 
+
+/*  Complete 8086 instruction set, I think 115 , shiiiiiiiiiiiiiiiiiiiiiiiit
+AAA
+AAD
+AAM
+AAS
+ADC
+ADD
+AND
+CALL
+CBW
+CLC
+CLD
+CLI
+CMC
+CMP
+CMPSB
+CMPSW
+CWD
+DAA
+DAS
+DEC
+DIV
+HLT
+IDIV
+IMUL
+IN
+INC
+INT
+INTO
+IRET
+JA
+JAE
+JB
+JBE
+JC
+JCXZ
+JE
+JG
+JGE
+JL
+JLE
+JMP
+JNA
+JNAE
+JNB
+JNBE
+JNC
+JNE
+JNG
+JNGE
+JNL
+JNLE
+JNO
+JNP
+JNS
+JNZ
+JO
+JP
+JPE
+JPO
+JS
+JZ
+LAHF
+LDS
+LEA
+LES
+LODSB
+LODSW
+LOOP
+LOOPE
+LOOPNE
+LOOPNZ
+LOOPZ
+MOV
+MOVSB
+MOVSW
+MUL
+NEG
+NOP
+NOT
+OR
+OUT
+POP
+POPA
+POPF
+PUSH
+PUSHA
+PUSHF
+RCL
+RCR
+REP
+REPE
+REPNE
+REPNZ
+REPZ
+RET
+RETF
+ROL
+ROR
+SAHF
+SAL
+SAR
+SBB
+SCASB
+SCASW
+SHL
+SHR
+STC
+STD
+STI
+STOSB
+STOSW
+SUB
+TEST
+XCHG
+XLATB
+XOR
+*/
