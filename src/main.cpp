@@ -3,7 +3,8 @@
 #include <sstream>
 #include "emulator8086.h"
 
-int main() {
+int main()
+{
     Emulator8086 emu;
     std::string input;
 
@@ -16,35 +17,45 @@ int main() {
     std::cout << "  'exit' - quit emulator\n";
     std::cout << "Enter assembly instructions:\n";
 
-    while (true) {
+    while (true)
+    {
         std::cout << "> ";
         std::getline(std::cin, input);
 
-        if (input == "exit") break;
-        if (input == "?"){
+        if (input == ":3xit")
+            break;
+        if (input == "?")
+        {
             emu.displayHelp();
             continue;
         }
-        if (input == "reg") {
+        if (input == "reg")
+        {
             emu.displayRegisters();
             continue;
         }
-        if (input == "stack") {
+        if (input == "stack")
+        {
             emu.displayStack();
             continue;
         }
-        if (input.substr(0, 4) == "mem ") {
+        if (input.substr(0, 4) == "mem ")
+        {
             std::istringstream iss(input.substr(4));
             uint16_t addr, count;
             iss >> std::hex >> addr >> count;
             emu.displayMemory(addr, count);
             continue;
         }
-        if (input.empty()) continue;
+        if (input.empty())
+            continue;
 
-        try {
+        try
+        {
             emu.executeInstruction(input);
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception &e)
+        {
             std::cout << "Error: " << e.what() << "\n";
         }
     }

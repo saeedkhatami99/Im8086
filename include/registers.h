@@ -3,15 +3,18 @@
 
 #include <cstdint>
 
-union Register16 {
+union Register16
+{
     uint16_t x;
-    struct {
+    struct
+    {
         uint8_t l;
         uint8_t h;
     };
 };
 
-class Registers {
+class Registers
+{
 public:
     Register16 AX, BX, CX, DX;
     uint16_t SI, DI, BP, SP;
@@ -29,7 +32,8 @@ public:
     static const uint16_t DF = 0x0400;
     static const uint16_t OF = 0x0800;
 
-    Registers() {
+    Registers()
+    {
         AX.x = BX.x = CX.x = DX.x = 0;
         SI = DI = BP = 0;
         SP = 0xFFFE;
