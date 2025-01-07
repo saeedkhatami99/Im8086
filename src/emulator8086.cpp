@@ -31,6 +31,24 @@ void Emulator8086::initializeInstructions()
     instructions["OR"] = std::bind(&Emulator8086::or_op, this, std::placeholders::_1);
     instructions["XOR"] = std::bind(&Emulator8086::xor_op, this, std::placeholders::_1);
     instructions["NOT"] = std::bind(&Emulator8086::not_op, this, std::placeholders::_1);
+    instructions["MUL"] = std::bind(&Emulator8086::mul, this, std::placeholders::_1);
+    instructions["DIV"] = std::bind(&Emulator8086::div, this, std::placeholders::_1);
+    instructions["NEG"] = std::bind(&Emulator8086::neg, this, std::placeholders::_1);
+    instructions["XCHG"] = std::bind(&Emulator8086::xchg, this, std::placeholders::_1);
+    instructions["LEA"] = std::bind(&Emulator8086::lea, this, std::placeholders::_1);
+    instructions["LDS"] = std::bind(&Emulator8086::lds, this, std::placeholders::_1);
+    instructions["LES"] = std::bind(&Emulator8086::les, this, std::placeholders::_1);
+    instructions["LAHF"] = std::bind(&Emulator8086::lahf, this, std::placeholders::_1);
+    instructions["SAHF"] = std::bind(&Emulator8086::sahf, this, std::placeholders::_1);
+    instructions["PUSHF"] = std::bind(&Emulator8086::pushf, this, std::placeholders::_1);
+    instructions["POPF"] = std::bind(&Emulator8086::popf, this, std::placeholders::_1);
+    instructions["PUSHA"] = std::bind(&Emulator8086::pusha, this, std::placeholders::_1);
+    instructions["POPA"] = std::bind(&Emulator8086::popa, this, std::placeholders::_1);
+    instructions["AAA"] = std::bind(&Emulator8086::aaa, this, std::placeholders::_1);
+    instructions["DAA"] = std::bind(&Emulator8086::daa, this, std::placeholders::_1);
+    instructions["AAS"] = std::bind(&Emulator8086::aas, this, std::placeholders::_1);
+    instructions["DAS"] = std::bind(&Emulator8086::das, this, std::placeholders::_1);
+    instructions["CBW"] = std::bind(&Emulator8086::cbw, this, std::placeholders::_1);
 }
 
 uint16_t &Emulator8086::getRegister(const std::string &reg)
@@ -590,6 +608,326 @@ void Emulator8086::not_op(std::vector<std::string> &operands)
         uint16_t &dest = getRegister(operands[0]);
         dest = ~dest;
     }
+}
+
+void Emulator8086::neg(std::vector<std::string> &operands)
+{
+    if (operands.size() != 1)
+        throw std::runtime_error("NEG requires 1 operand");
+
+    if (is8BitRegister(operands[0]))
+    {
+        uint8_t &dest = getRegister8(operands[0]);
+        dest = -dest;
+        updateFlags(dest, true);
+    }
+    else
+    {
+        uint16_t &dest = getRegister(operands[0]);
+        dest = -dest;
+        updateFlags(dest, true);
+    }
+}
+
+void Emulator8086::mul(std::vector<std::string> &operands)
+{
+    if (operands.size() != 1)
+        throw std::runtime_error("MUL requires 1 operand");
+
+    if (is8BitRegister(operands[0]))
+    {
+        uint8_t value = getRegister8(operands[0]);
+        uint16_t result = regs.AX.l * value;
+        regs.AX.x = result;
+        updateFlags(result, true);
+    }
+    else
+    {
+        uint16_t value = getRegister(operands[0]);
+        uint32_t result = regs.AX.x * value;
+        regs.AX.x = result & 0xFFFF;
+        regs.DX.x = (result >> 16) & 0xFFFF;
+        updateFlags(result, true);
+    }
+}
+
+void Emulator8086::div(std::vector<std::string> &operands)
+{
+    if (operands.size() != 1)
+        throw std::runtime_error("DIV requires 1 operand");
+
+    if (is8BitRegister(operands[0]))
+    {
+        uint8_t value = getRegister8(operands[0]);
+        if (value == 0)
+            throw std::runtime_error("Division by zero");
+
+        uint16_t dividend = regs.AX.x;
+        regs.AX.l = dividend / value;
+        regs.AX.h = dividend % value;
+    }
+    else
+    {
+        uint16_t value = getRegister(operands[0]);
+        if (value == 0)
+            throw std::runtime_error("Division by zero");
+
+        uint32_t dividend = (regs.DX.x << 16) | regs.AX.x;
+        regs.AX.x = dividend / value;
+        regs.DX.x = dividend % value;
+    }
+}
+
+void Emulator8086::xchg(std::vector<std::string> &operands)
+{
+    if (operands.size() != 2)
+        throw std::runtime_error("XCHG requires 2 operands");
+
+    if (is8BitRegister(operands[0]) && is8BitRegister(operands[1]))
+    {
+        uint8_t temp = getRegister8(operands[0]);
+        getRegister8(operands[0]) = getRegister8(operands[1]);
+        getRegister8(operands[1]) = temp;
+    }
+    else if (!is8BitRegister(operands[0]) && !is8BitRegister(operands[1]))
+    {
+        uint16_t temp = getRegister(operands[0]);
+        getRegister(operands[0]) = getRegister(operands[1]);
+        getRegister(operands[1]) = temp;
+    }
+    else
+    {
+        throw std::runtime_error("XCHG operands must be both 8-bit or both 16-bit");
+    }
+}
+
+void Emulator8086::lea(std::vector<std::string> &operands)
+{
+    if (operands.size() != 2)
+        throw std::runtime_error("LEA requires 2 operands");
+
+    if (isMemoryOperand(operands[1]))
+    {
+        MemoryOperand memOp = parseMemoryOperand(operands[1]);
+        uint16_t address = calculateEffectiveAddress(memOp);
+        getRegister(operands[0]) = address;
+    }
+    else
+    {
+        throw std::runtime_error("LEA source operand must be a memory operand");
+    }
+}
+
+void Emulator8086::lds(std::vector<std::string> &operands)
+{
+    if (operands.size() != 2)
+        throw std::runtime_error("LDS requires 2 operands");
+
+    if (isMemoryOperand(operands[1]))
+    {
+        MemoryOperand memOp = parseMemoryOperand(operands[1]);
+        uint16_t address = calculateEffectiveAddress(memOp);
+        getRegister(operands[0]) = readMemoryWord(address);
+        regs.DS = readMemoryWord(address + 2);
+    }
+    else
+    {
+        throw std::runtime_error("LDS source operand must be a memory operand");
+    }
+}
+
+void Emulator8086::les(std::vector<std::string> &operands)
+{
+    if (operands.size() != 2)
+        throw std::runtime_error("LES requires 2 operands");
+
+    if (isMemoryOperand(operands[1]))
+    {
+        MemoryOperand memOp = parseMemoryOperand(operands[1]);
+        uint16_t address = calculateEffectiveAddress(memOp);
+        getRegister(operands[0]) = readMemoryWord(address);
+        regs.ES = readMemoryWord(address + 2);
+    }
+    else
+    {
+        throw std::runtime_error("LES source operand must be a memory operand");
+    }
+}
+
+void Emulator8086::lahf(std::vector<std::string> &operands)
+{
+    if (!operands.empty())
+        throw std::runtime_error("LAHF requires no operands");
+
+    regs.AX.h = regs.FLAGS & 0xFF;
+}
+
+void Emulator8086::sahf(std::vector<std::string> &operands)
+{
+    if (!operands.empty())
+        throw std::runtime_error("SAHF requires no operands");
+
+    regs.FLAGS = (regs.FLAGS & 0xFF00) | regs.AX.h;
+}
+
+void Emulator8086::pushf(std::vector<std::string> &operands)
+{
+    if (!operands.empty())
+        throw std::runtime_error("PUSHF requires no operands");
+
+    regs.SP -= 2;
+    writeMemoryWord(regs.SP, regs.FLAGS);
+}
+
+void Emulator8086::popf(std::vector<std::string> &operands)
+{
+    if (!operands.empty())
+        throw std::runtime_error("POPF requires no operands");
+
+    regs.FLAGS = readMemoryWord(regs.SP);
+    regs.SP += 2;
+}
+
+void Emulator8086::pusha(std::vector<std::string> &operands)
+{
+    if (!operands.empty())
+        throw std::runtime_error("PUSHA requires no operands");
+
+    uint16_t tempSP = regs.SP;
+    regs.SP -= 2;
+    writeMemoryWord(regs.SP, regs.AX.x);
+    regs.SP -= 2;
+    writeMemoryWord(regs.SP, regs.CX.x);
+    regs.SP -= 2;
+    writeMemoryWord(regs.SP, regs.DX.x);
+    regs.SP -= 2;
+    writeMemoryWord(regs.SP, regs.BX.x);
+    regs.SP -= 2;
+    writeMemoryWord(regs.SP, tempSP);
+    regs.SP -= 2;
+    writeMemoryWord(regs.SP, regs.BP);
+    regs.SP -= 2;
+    writeMemoryWord(regs.SP, regs.SI);
+    regs.SP -= 2;
+    writeMemoryWord(regs.SP, regs.DI);
+}
+
+void Emulator8086::popa(std::vector<std::string> &operands)
+{
+    if (!operands.empty())
+        throw std::runtime_error("POPA requires no operands");
+
+    regs.DI = readMemoryWord(regs.SP);
+    regs.SP += 2;
+    regs.SI = readMemoryWord(regs.SP);
+    regs.SP += 2;
+    regs.BP = readMemoryWord(regs.SP);
+    regs.SP += 2;
+    regs.SP += 2; // Skip SP
+    regs.BX = readMemoryWord(regs.SP);
+    regs.SP += 2;
+    regs.DX = readMemoryWord(regs.SP);
+    regs.SP += 2;
+    regs.CX = readMemoryWord(regs.SP);
+    regs.SP += 2;
+    regs.AX = readMemoryWord(regs.SP);
+    regs.SP += 2;
+}
+
+void Emulator8086::aaa(std::vector<std::string> &operands)
+{
+    if (!operands.empty())
+        throw std::runtime_error("AAA requires no operands");
+
+    if ((regs.AX.l & 0x0F) > 9 || (regs.FLAGS & Registers::AF))
+    {
+        regs.AX.l += 6;
+        regs.AX.h += 1;
+        regs.FLAGS |= Registers::AF | Registers::CF;
+    }
+    else
+    {
+        regs.FLAGS &= ~(Registers::AF | Registers::CF);
+    }
+    regs.AX.l &= 0x0F;
+}
+
+void Emulator8086::daa(std::vector<std::string> &operands)
+{
+    if (!operands.empty())
+        throw std::runtime_error("DAA requires no operands");
+
+    if ((regs.AX.l & 0x0F) > 9 || (regs.FLAGS & Registers::AF))
+    {
+        regs.AX.l += 6;
+        regs.FLAGS |= Registers::AF;
+    }
+    else
+    {
+        regs.FLAGS &= ~Registers::AF;
+    }
+
+    if ((regs.AX.l & 0xF0) > 0x90 || (regs.FLAGS & Registers::CF))
+    {
+        regs.AX.l += 0x60;
+        regs.FLAGS |= Registers::CF;
+    }
+    else
+    {
+        regs.FLAGS &= ~Registers::CF;
+    }
+}
+
+void Emulator8086::aas(std::vector<std::string> &operands)
+{
+    if (!operands.empty())
+        throw std::runtime_error("AAS requires no operands");
+
+    if ((regs.AX.l & 0x0F) > 9 || (regs.FLAGS & Registers::AF))
+    {
+        regs.AX.l -= 6;
+        regs.AX.h -= 1;
+        regs.FLAGS |= Registers::AF | Registers::CF;
+    }
+    else
+    {
+        regs.FLAGS &= ~(Registers::AF | Registers::CF);
+    }
+    regs.AX.l &= 0x0F;
+}
+
+void Emulator8086::das(std::vector<std::string> &operands)
+{
+    if (!operands.empty())
+        throw std::runtime_error("DAS requires no operands");
+
+    if ((regs.AX.l & 0x0F) > 9 || (regs.FLAGS & Registers::AF))
+    {
+        regs.AX.l -= 6;
+        regs.FLAGS |= Registers::AF;
+    }
+    else
+    {
+        regs.FLAGS &= ~Registers::AF;
+    }
+
+    if ((regs.AX.l & 0xF0) > 0x90 || (regs.FLAGS & Registers::CF))
+    {
+        regs.AX.l -= 0x60;
+        regs.FLAGS |= Registers::CF;
+    }
+    else
+    {
+        regs.FLAGS &= ~Registers::CF;
+    }
+}
+
+void Emulator8086::cbw(std::vector<std::string> &operands)
+{
+    if (!operands.empty())
+        throw std::runtime_error("CBW requires no operands");
+
+    regs.AX.h = (regs.AX.l & 0x80) ? 0xFF : 0x00;
 }
 
 void Emulator8086::executeInstruction(const std::string &instruction)
