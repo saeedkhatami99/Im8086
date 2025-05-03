@@ -41,36 +41,36 @@ jobs:
           name: 8086emu_${{ matrix.arch }}_${{ matrix.os }}
           path: build/8086emu_${{ matrix.arch }}_${{ matrix.os }}.zip
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-upload
-    steps:
-      - name: Set up Git
-        run: |
-          git config --global user.name "Saeed Khatami"
-          git config --global user.email "saeed.khatami.99@gmail.com"
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs: build-and-upload
+  #   steps:
+  #     - name: Set up Git
+  #       run: |
+  #         git config --global user.name "Saeed Khatami"
+  #         git config --global user.email "saeed.khatami.99@gmail.com"
 
-      - name: Clone Target Repository
-        run: |
-          git clone https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/saeedkhatami/8086emu-bin.git
-          cd 8086emu-bin
-          git config user.name "Saeed Khatami"
-          git config user.email "saeed.khatami.99@gmail.com"
+  #     - name: Clone Target Repository
+  #       run: |
+  #         git clone https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/saeedkhatami/8086emu-bin.git
+  #         cd 8086emu-bin
+  #         git config user.name "Saeed Khatami"
+  #         git config user.email "saeed.khatami.99@gmail.com"
 
-      - name: Download All Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: 8086emu-bin/artifacts
+  #     - name: Download All Artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         path: 8086emu-bin/artifacts
 
-      - name: Copy Artifacts to Root
-        run: |
-          cd 8086emu-bin
-          find artifacts -name '*.zip' -exec mv {} . \;
-          git add .
-          git commit -m "Add new artifacts from all builds"
+  #     - name: Copy Artifacts to Root
+  #       run: |
+  #         cd 8086emu-bin
+  #         find artifacts -name '*.zip' -exec mv {} . \;
+  #         git add .
+  #         git commit -m "Add new artifacts from all builds"
 
-      - name: Push Changes
-        run: |
-          cd 8086emu-bin
-          git pull --rebase origin main
-          git push origin main
+  #     - name: Push Changes
+  #       run: |
+  #         cd 8086emu-bin
+  #         git pull --rebase origin main
+  #         git push origin main
