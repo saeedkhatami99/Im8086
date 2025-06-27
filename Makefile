@@ -10,7 +10,7 @@ else
     ZIP = zip -j $(BUILD_DIR)/$(ZIP_NAME) $(EXECUTABLE)
 endif
 
-CXXFLAGS = -Wall -std=c++11 -I./include
+CXXFLAGS = -Wall -std=c++14 -I./include
 
 ifeq ($(ARCH), 64)
     CXXFLAGS += -m64
@@ -34,7 +34,7 @@ SRC_DIR = src
 INC_DIR = include
 BUILD_DIR = build
 OBJ_DIR = obj
-SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
+SOURCES = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/instructions/*.cpp)
 OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SOURCES))
 EXECUTABLE = $(BUILD_DIR)/8086emu$(EXE)
 
@@ -48,11 +48,20 @@ endif
 
 all: $(EXECUTABLE)
 
-$(EXECUTABLE): $(OBJECTS)
+$(EXECUTABLE): $(OBJECTS) | $(BUILD_DIR)
 	$(CXX) $(OBJECTS) -o $(EXECUTABLE)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR) $(OBJ_DIR)/instructions
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
+
+$(OBJ_DIR)/instructions:
+	mkdir -p $(OBJ_DIR)/instructions
 
 check:
 	@echo "Running tests..."
@@ -63,4 +72,7 @@ distcheck:
 	$(ZIP)
 	@echo "Distribution package created: $(BUILD_DIR)/$(ZIP_NAME)"
 
-.PHONY: all check distcheck
+.PHONY: all check distcheck clean
+
+clean:
+	$(RM) -r $(OBJ_DIR) $(BUILD_DIR)
