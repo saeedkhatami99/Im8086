@@ -1,10 +1,11 @@
+# Compiler detection - can be overridden by environment
 ifeq ($(OS),Windows_NT)
-    CXX = g++
+    CXX ?= g++
     RM = del /Q /F
     EXE = .exe
     ZIP = powershell -Command "Compress-Archive -Path '$(EXECUTABLE)' -DestinationPath '$(BUILD_DIR)/$(ZIP_NAME)'"
 else
-    CXX = g++
+    CXX ?= g++
     RM = rm -f
     EXE =
     ZIP = zip -j $(BUILD_DIR)/$(ZIP_NAME) $(EXECUTABLE)
@@ -18,7 +19,16 @@ ifeq ($(ARCH), 64)
     ARCH_SUFFIX = _64
 else ifeq ($(ARCH), arm)
     ifeq ($(shell uname),Darwin)
+        # macOS ARM
         CXXFLAGS += -arch arm64
+    else ifeq ($(OS),Windows_NT)
+        # Windows ARM (if using clang)
+        ifdef CXXFLAGS_ARM
+            CXXFLAGS += $(CXXFLAGS_ARM)
+        endif
+    else
+        # Linux ARM - cross compilation handled by CXX environment variable
+        # CXX should be set to aarch64-linux-gnu-g++ by GitHub Actions
     endif
     ARCH_SUFFIX = _arm
 else

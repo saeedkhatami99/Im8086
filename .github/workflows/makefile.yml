@@ -21,6 +21,9 @@ jobs:
           - os: ubuntu-latest
             arch: 64
             executable: 8086emu
+          - os: ubuntu-latest
+            arch: arm
+            executable: 8086emu
           - os: macos-latest
             arch: 64
             executable: 8086emu
@@ -30,9 +33,19 @@ jobs:
           - os: windows-latest
             arch: 64
             executable: 8086emu.exe
+          - os: windows-latest
+            arch: arm
+            executable: 8086emu.exe
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Build Environment (Linux ARM)
+        if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          echo "CXX=aarch64-linux-gnu-g++" >> $GITHUB_ENV
 
       - name: Setup Build Environment (Windows)
         if: matrix.os == 'windows-latest'
@@ -41,6 +54,17 @@ jobs:
           choco install mingw -y
           echo "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin" >> $GITHUB_PATH
         shell: powershell
+
+      - name: Setup Build Environment (Windows ARM)
+        if: matrix.os == 'windows-latest' && matrix.arch == 'arm'
+        run: |
+          # Windows ARM cross-compilation is experimental
+          # Using clang with ARM64 target
+          choco install llvm -y
+          echo "CXX=clang++" >> $GITHUB_ENV
+          echo "CXXFLAGS_ARM=--target=arm64-pc-windows-msvc -fuse-ld=lld" >> $GITHUB_ENV
+        shell: powershell
+        continue-on-error: true
 
       - name: Setup Build Environment (macOS)
         if: matrix.os == 'macos-latest'
@@ -58,6 +82,7 @@ jobs:
       - name: Build Project
         run: make ARCH=${{ matrix.arch }}
         shell: bash
+        continue-on-error: ${{ matrix.os == 'windows-latest' && matrix.arch == 'arm' }}
 
       - name: Test Build
         run: |
@@ -66,23 +91,26 @@ jobs:
             ls -la build/
           else
             echo "Build failed: executable not found"
-            exit 1
+            if [ "${{ matrix.os }}" = "windows-latest" ] && [ "${{ matrix.arch }}" = "arm" ]; then
+              echo "Windows ARM build is experimental and may fail"
+              exit 0
+            else
+              exit 1
+            fi
           fi
         shell: bash
 
       - name: Create Distribution Package
+        if: success()
         run: make distcheck ARCH=${{ matrix.arch }}
         shell: bash
 
       - name: Upload Artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: 8086emu-${{ matrix.arch }}-${{ runner.os }}
-          path: |
-            build/${{ matrix.executable }}
-            samples/
-            README.md
-            *.md
+          path: build/${{ matrix.executable }}
 
   release:
     runs-on: ubuntu-latest
@@ -127,15 +155,22 @@ jobs:
             ### Downloads
             Choose the appropriate build for your platform:
             - **Linux (x64)**: `8086emu-64-Linux`
+            - **Linux (ARM64)**: `8086emu-arm-Linux`
             - **macOS (x64)**: `8086emu-64-macOS` 
-            - **macOS (ARM)**: `8086emu-arm-macOS`
+            - **macOS (ARM64)**: `8086emu-arm-macOS`
             - **Windows (x64)**: `8086emu-64-Windows`
+            - **Windows (ARM64)**: `8086emu-arm-Windows` *(experimental)*
             
             ### Usage
-            1. Download and extract the appropriate package
+            1. Download the appropriate executable for your platform
             2. Run `./8086emu` (Linux/macOS) or `8086emu.exe` (Windows)
-            3. Try the sample files in the `samples/` directory
+            3. Get sample files from the repository's `samples/` directory
             4. Use `?` command for help
+            
+            ### Notes
+            - **Windows ARM64**: Experimental build using cross-compilation
+            - **Linux ARM64**: Cross-compiled for aarch64 architecture
+            - **macOS ARM64**: Native Apple Silicon build
             
           files: artifacts/**/*
         env:
