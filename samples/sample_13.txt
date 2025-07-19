@@ -1,0 +1,15 @@
+# Sample 13 - Sign Extension (Advanced)
+# Test CBW and CWD instructions
+
+MOV AL, 80h
+CBW
+reg
+MOV AL, 7Fh
+CBW
+reg
+MOV AX, 8000h
+CWD
+reg
+MOV AX, 7FFFh
+CWD
+reg

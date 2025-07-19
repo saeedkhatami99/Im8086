@@ -1,0 +1,18 @@
+# Sample 12 - Decimal Adjustments (Advanced)
+# Test decimal adjustment instructions
+
+MOV AL, 29h
+MOV BL, 35h
+ADD AL, BL
+DAA
+reg
+MOV AL, 83h
+MOV BL, 29h
+SUB AL, BL
+DAS
+reg
+MOV AL, 99h
+MOV BL, 1h
+ADD AL, BL
+DAA
+reg

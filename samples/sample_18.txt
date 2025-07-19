@@ -1,0 +1,17 @@
+# Sample 18 - String Scan Operations (Expert)
+# Test SCAS with REPNE
+
+MOV DI, 1000h
+MOV AL, 0h
+MOV CX, 10h
+REP STOSB
+MOV DI, 1005h
+MOV AL, 0FFh
+STOSB
+mem 1000 10
+MOV DI, 1000h
+MOV AL, 0FFh
+MOV CX, 10h
+CLD
+REPNE SCASB
+reg

@@ -1,0 +1,10 @@
+# Sample 02 - Basic Arithmetic (Beginner)
+# Test ADD, SUB, INC, DEC instructions
+
+MOV AX, 10h
+MOV BX, 20h
+ADD AX, BX
+SUB AX, 5h
+INC AX
+DEC BX
+reg

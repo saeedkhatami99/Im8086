@@ -1,0 +1,17 @@
+# Sample 10 - String Operations Basic (Intermediate-Advanced)
+# Test basic string instructions without REP
+
+MOV SI, 1000h
+MOV DI, 2000h
+MOV AL, 55h
+STOSB
+reg
+MOV AX, 1234h
+STOSW
+reg
+MOV SI, 2000h
+LODSB
+reg
+MOV SI, 2001h
+LODSW
+reg

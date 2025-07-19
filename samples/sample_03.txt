@@ -1,0 +1,15 @@
+# Sample 03 - Stack Operations (Beginner)
+# Test PUSH and POP instructions
+
+MOV AX, 1111h
+MOV BX, 2222h
+MOV CX, 3333h
+PUSH AX
+PUSH BX
+PUSH CX
+reg
+stack
+POP DX
+POP SI
+POP DI
+reg
