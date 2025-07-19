@@ -124,14 +124,39 @@ jobs:
         with:
           path: artifacts
 
+      - name: Prepare Release Assets
+        run: |
+          mkdir -p release-assets
+          # Rename artifacts to have unique names
+          for dir in artifacts/*/; do
+            if [ -d "$dir" ]; then
+              artifact_name=$(basename "$dir")
+              echo "Processing artifact: $artifact_name"
+              
+              # Find the executable in the artifact directory
+              if [ -f "$dir/8086emu" ]; then
+                cp "$dir/8086emu" "release-assets/${artifact_name}"
+                echo "Created: release-assets/${artifact_name}"
+              elif [ -f "$dir/8086emu.exe" ]; then
+                cp "$dir/8086emu.exe" "release-assets/${artifact_name}.exe"
+                echo "Created: release-assets/${artifact_name}.exe"
+              fi
+            fi
+          done
+          
+          echo "Release assets prepared:"
+          ls -la release-assets/
+
       - name: Set Release Info
         id: release_info
         run: |
           TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           RELEASE_TAG="build-${TIMESTAMP}-${SHORT_SHA}"
+          RELEASE_DATE=$(date +'%Y-%m-%d %H:%M:%S UTC')
           echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
           echo "RELEASE_NAME=8086 Emulator Build ${TIMESTAMP}" >> $GITHUB_ENV
+          echo "RELEASE_DATE=${RELEASE_DATE}" >> $GITHUB_ENV
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -144,7 +169,7 @@ jobs:
             ## 8086 Emulator Build
             
             **Commit:** ${{ github.sha }}
-            **Date:** $(date +'%Y-%m-%d %H:%M:%S UTC')
+            **Date:** ${{ env.RELEASE_DATE }}
             
             ### Features
             - Complete 8086 instruction set emulation
@@ -158,12 +183,12 @@ jobs:
             - **Linux (ARM64)**: `8086emu-arm-Linux`
             - **macOS (x64)**: `8086emu-64-macOS` 
             - **macOS (ARM64)**: `8086emu-arm-macOS`
-            - **Windows (x64)**: `8086emu-64-Windows`
-            - **Windows (ARM64)**: `8086emu-arm-Windows` *(experimental)*
+            - **Windows (x64)**: `8086emu-64-Windows.exe`
+            - **Windows (ARM64)**: `8086emu-arm-Windows.exe` *(experimental)*
             
             ### Usage
             1. Download the appropriate executable for your platform
-            2. Run `./8086emu` (Linux/macOS) or `8086emu.exe` (Windows)
+            2. Run `./8086emu-*` (Linux/macOS) or `8086emu-*.exe` (Windows)
             3. Get sample files from the repository's `samples/` directory
             4. Use `?` command for help
             
@@ -172,6 +197,6 @@ jobs:
             - **Linux ARM64**: Cross-compiled for aarch64 architecture
             - **macOS ARM64**: Native Apple Silicon build
             
-          files: artifacts/**/*
+          files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
