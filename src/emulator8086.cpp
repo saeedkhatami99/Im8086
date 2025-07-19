@@ -632,6 +632,6 @@ void Emulator8086::displayHelp()
     std::cout << "  :3xit              - Exit emulator\n";
     std::cout << "----------------------------------------\n";
     std::cout << "Notes: Use 'h' suffix for hex (e.g., 10h), memory as [BX+SI+offset]\n";
-    std::cout << "Enhanced Features: Full XCHG memory support, Complete REP prefixes,\n";
-    std::cout << "Enhanced I/O simulation, Comprehensive interrupt handling\n";
+    //std::cout << "Enhanced Features: Full XCHG memory support, Complete REP prefixes,\n";
+    //std::cout << "Enhanced I/O simulation, Comprehensive interrupt handling\n";
 }

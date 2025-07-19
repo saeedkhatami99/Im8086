@@ -14,7 +14,7 @@ int main()
     std::cout << "  'reg' - display registers\n";
     std::cout << "  'stack' - display stack\n";
     std::cout << "  'mem ADDR COUNT' - display memory (e.g., 'mem 100 128')\n";
-    std::cout << "  'exit' - quit emulator\n";
+    std::cout << "  '3xit' - quit emulator\n";
     std::cout << "Enter assembly instructions:\n";
 
     while (true)
