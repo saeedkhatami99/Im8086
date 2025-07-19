@@ -12,23 +12,30 @@ endif
 
 CXXFLAGS = -Wall -std=c++14 -I./include
 
+# Architecture handling
 ifeq ($(ARCH), 64)
     CXXFLAGS += -m64
-    ARCH_NAME = 64
+    ARCH_SUFFIX = _64
 else ifeq ($(ARCH), arm)
-    CXXFLAGS += -arch arm64
-    ARCH_NAME = arm
-endif
-
-ifeq ($(OS),Windows_NT)
-    OS_NAME = windows-latest
-else ifeq ($(shell uname),Darwin)
-    OS_NAME = macos-latest
+    ifeq ($(shell uname),Darwin)
+        CXXFLAGS += -arch arm64
+    endif
+    ARCH_SUFFIX = _arm
 else
-    OS_NAME = ubuntu-latest
+    ARCH_SUFFIX =
 endif
 
-ZIP_NAME = 8086emu_$(ARCH_NAME)_$(OS_NAME).zip
+# OS detection for naming
+ifeq ($(OS),Windows_NT)
+    OS_SUFFIX = _windows
+else ifeq ($(shell uname),Darwin)
+    OS_SUFFIX = _macos
+else
+    OS_SUFFIX = _linux
+endif
+
+TARGET = 8086emu
+ZIP_NAME = $(TARGET)$(ARCH_SUFFIX)$(OS_SUFFIX).zip
 
 SRC_DIR = src
 INC_DIR = include
@@ -36,7 +43,7 @@ BUILD_DIR = build
 OBJ_DIR = obj
 SOURCES = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/instructions/*.cpp)
 OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SOURCES))
-EXECUTABLE = $(BUILD_DIR)/8086emu$(EXE)
+EXECUTABLE = $(BUILD_DIR)/$(TARGET)$(EXE)
 
 ifeq ($(OS),Darwin)
     ifeq ($(ARCH), 64)
@@ -64,13 +71,27 @@ $(OBJ_DIR)/instructions:
 	mkdir -p $(OBJ_DIR)/instructions
 
 check:
-	@echo "Running tests..."
+	@echo "Running basic functionality test..."
+	@if [ -f "$(EXECUTABLE)" ]; then \
+		echo "✓ Executable exists: $(EXECUTABLE)"; \
+		echo "✓ Build successful"; \
+	else \
+		echo "✗ Executable not found: $(EXECUTABLE)"; \
+		exit 1; \
+	fi
 
-distcheck:
+distcheck: $(EXECUTABLE)
 	@echo "Creating distribution package..."
-	@echo "Target ZIP file: $(BUILD_DIR)/$(ZIP_NAME)"
-	$(ZIP)
-	@echo "Distribution package created: $(BUILD_DIR)/$(ZIP_NAME)"
+	@echo "Executable: $(EXECUTABLE)"
+	@echo "ZIP target: $(BUILD_DIR)/$(ZIP_NAME)"
+	@if [ -f "$(EXECUTABLE)" ]; then \
+		echo "✓ Executable verified"; \
+		$(ZIP); \
+		echo "✓ Distribution package created: $(BUILD_DIR)/$(ZIP_NAME)"; \
+	else \
+		echo "✗ Cannot create distribution: executable not found"; \
+		exit 1; \
+	fi
 
 .PHONY: all check distcheck clean
 
