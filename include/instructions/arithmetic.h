@@ -6,17 +6,16 @@
 #include "../registers.h"
 #include "../memory_components.h"
 
-class Emulator8086; // Forward declaration
+class Emulator8086;
 
 class ArithmeticInstructions
 {
 private:
-    Emulator8086* emulator;
+    Emulator8086 *emulator;
 
 public:
-    ArithmeticInstructions(Emulator8086* emu);
-    
-    // Arithmetic instructions
+    ArithmeticInstructions(Emulator8086 *emu);
+
     void add(const std::vector<std::string> &operands);
     void adc(const std::vector<std::string> &operands);
     void inc(const std::vector<std::string> &operands);

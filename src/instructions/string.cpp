@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <algorithm>
 
-StringInstructions::StringInstructions(Emulator8086* emu) : emulator(emu) {}
+StringInstructions::StringInstructions(Emulator8086 *emu) : emulator(emu) {}
 
 void StringInstructions::movsb(const std::vector<std::string> &operands)
 {
@@ -113,15 +113,14 @@ void StringInstructions::stosw(const std::vector<std::string> &operands)
     emulator->getRegisters().DI += adjust;
 }
 
-// Enhanced REP prefixes implementation
 void StringInstructions::rep(const std::vector<std::string> &operands)
 {
     if (operands.size() != 1)
         throw std::runtime_error("REP requires 1 string operation");
-    
+
     std::string op = operands[0];
     std::transform(op.begin(), op.end(), op.begin(), ::toupper);
-    
+
     while (emulator->getRegisters().CX.x > 0)
     {
         if (op == "MOVSB")
@@ -138,7 +137,7 @@ void StringInstructions::rep(const std::vector<std::string> &operands)
             lodsw({});
         else
             throw std::runtime_error("REP not supported for " + op);
-        
+
         emulator->getRegisters().CX.x--;
     }
 }
@@ -147,10 +146,10 @@ void StringInstructions::repe(const std::vector<std::string> &operands)
 {
     if (operands.size() != 1)
         throw std::runtime_error("REPE requires 1 string operation");
-    
+
     std::string op = operands[0];
     std::transform(op.begin(), op.end(), op.begin(), ::toupper);
-    
+
     while (emulator->getRegisters().CX.x > 0)
     {
         if (op == "CMPSB")
@@ -163,10 +162,9 @@ void StringInstructions::repe(const std::vector<std::string> &operands)
             scasw({});
         else
             throw std::runtime_error("REPE not supported for " + op);
-        
+
         emulator->getRegisters().CX.x--;
-        
-        // Break if zero flag is clear (not equal)
+
         if (!(emulator->getRegisters().FLAGS & Registers::ZF))
             break;
     }
@@ -176,10 +174,10 @@ void StringInstructions::repne(const std::vector<std::string> &operands)
 {
     if (operands.size() != 1)
         throw std::runtime_error("REPNE requires 1 string operation");
-    
+
     std::string op = operands[0];
     std::transform(op.begin(), op.end(), op.begin(), ::toupper);
-    
+
     while (emulator->getRegisters().CX.x > 0)
     {
         if (op == "CMPSB")
@@ -192,10 +190,9 @@ void StringInstructions::repne(const std::vector<std::string> &operands)
             scasw({});
         else
             throw std::runtime_error("REPNE not supported for " + op);
-        
+
         emulator->getRegisters().CX.x--;
-        
-        // Break if zero flag is set (equal)
+
         if (emulator->getRegisters().FLAGS & Registers::ZF)
             break;
     }
@@ -203,12 +200,12 @@ void StringInstructions::repne(const std::vector<std::string> &operands)
 
 void StringInstructions::repnz(const std::vector<std::string> &operands)
 {
-    repne(operands); // REPNZ is same as REPNE
+    repne(operands);
 }
 
 void StringInstructions::repz(const std::vector<std::string> &operands)
 {
-    repe(operands); // REPZ is same as REPE
+    repe(operands);
 }
 
 void StringInstructions::xlat(const std::vector<std::string> &operands)
@@ -221,5 +218,5 @@ void StringInstructions::xlat(const std::vector<std::string> &operands)
 
 void StringInstructions::xlatb(const std::vector<std::string> &operands)
 {
-    xlat(operands); // XLATB is same as XLAT
+    xlat(operands);
 }

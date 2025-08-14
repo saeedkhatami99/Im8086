@@ -2,16 +2,16 @@
 #include "emulator8086.h"
 #include <stdexcept>
 
-BitManipulationInstructions::BitManipulationInstructions(Emulator8086* emu) : emulator(emu) {}
+BitManipulationInstructions::BitManipulationInstructions(Emulator8086 *emu) : emulator(emu) {}
 
 void BitManipulationInstructions::rcl(const std::vector<std::string> &operands)
 {
     if (operands.size() != 2)
         throw std::runtime_error("RCL requires 2 operands");
-    
-    uint8_t count = emulator->getValue8(operands[1]) & 0x1F; // Only use lower 5 bits
+
+    uint8_t count = emulator->getValue8(operands[1]) & 0x1F;
     bool carry = emulator->getRegisters().FLAGS & Registers::CF;
-    
+
     if (emulator->is8BitRegister(operands[0]))
     {
         uint8_t &dest = emulator->getRegister8(operands[0]);
@@ -31,7 +31,7 @@ void BitManipulationInstructions::rcl(const std::vector<std::string> &operands)
         MemoryOperand memOp = emulator->parseMemoryOperand(operands[0]);
         uint16_t address = emulator->calculateEffectiveAddress(memOp);
         uint16_t dest = emulator->readMemoryWord(address);
-        
+
         for (uint8_t i = 0; i < count; i++)
         {
             bool newCarry = dest & 0x8000;
@@ -39,7 +39,7 @@ void BitManipulationInstructions::rcl(const std::vector<std::string> &operands)
             carry = newCarry;
         }
         emulator->writeMemoryWord(address, dest);
-        
+
         if (carry)
             emulator->getRegisters().FLAGS |= Registers::CF;
         else
@@ -65,10 +65,10 @@ void BitManipulationInstructions::rcr(const std::vector<std::string> &operands)
 {
     if (operands.size() != 2)
         throw std::runtime_error("RCR requires 2 operands");
-    
+
     uint8_t count = emulator->getValue8(operands[1]) & 0x1F;
     bool carry = emulator->getRegisters().FLAGS & Registers::CF;
-    
+
     if (emulator->is8BitRegister(operands[0]))
     {
         uint8_t &dest = emulator->getRegister8(operands[0]);
@@ -88,7 +88,7 @@ void BitManipulationInstructions::rcr(const std::vector<std::string> &operands)
         MemoryOperand memOp = emulator->parseMemoryOperand(operands[0]);
         uint16_t address = emulator->calculateEffectiveAddress(memOp);
         uint16_t dest = emulator->readMemoryWord(address);
-        
+
         for (uint8_t i = 0; i < count; i++)
         {
             bool newCarry = dest & 0x0001;
@@ -96,7 +96,7 @@ void BitManipulationInstructions::rcr(const std::vector<std::string> &operands)
             carry = newCarry;
         }
         emulator->writeMemoryWord(address, dest);
-        
+
         if (carry)
             emulator->getRegisters().FLAGS |= Registers::CF;
         else
@@ -122,9 +122,9 @@ void BitManipulationInstructions::rol(const std::vector<std::string> &operands)
 {
     if (operands.size() != 2)
         throw std::runtime_error("ROL requires 2 operands");
-    
+
     uint8_t count = emulator->getValue8(operands[1]) & 0x1F;
-    
+
     if (emulator->is8BitRegister(operands[0]))
     {
         uint8_t &dest = emulator->getRegister8(operands[0]);
@@ -143,7 +143,7 @@ void BitManipulationInstructions::rol(const std::vector<std::string> &operands)
         MemoryOperand memOp = emulator->parseMemoryOperand(operands[0]);
         uint16_t address = emulator->calculateEffectiveAddress(memOp);
         uint16_t dest = emulator->readMemoryWord(address);
-        
+
         for (uint8_t i = 0; i < count; i++)
         {
             bool carry = dest & 0x8000;
@@ -174,9 +174,9 @@ void BitManipulationInstructions::ror(const std::vector<std::string> &operands)
 {
     if (operands.size() != 2)
         throw std::runtime_error("ROR requires 2 operands");
-    
+
     uint8_t count = emulator->getValue8(operands[1]) & 0x1F;
-    
+
     if (emulator->is8BitRegister(operands[0]))
     {
         uint8_t &dest = emulator->getRegister8(operands[0]);
@@ -195,7 +195,7 @@ void BitManipulationInstructions::ror(const std::vector<std::string> &operands)
         MemoryOperand memOp = emulator->parseMemoryOperand(operands[0]);
         uint16_t address = emulator->calculateEffectiveAddress(memOp);
         uint16_t dest = emulator->readMemoryWord(address);
-        
+
         for (uint8_t i = 0; i < count; i++)
         {
             bool carry = dest & 0x0001;
@@ -224,16 +224,16 @@ void BitManipulationInstructions::ror(const std::vector<std::string> &operands)
 
 void BitManipulationInstructions::sal(const std::vector<std::string> &operands)
 {
-    shl(operands); // SAL is same as SHL
+    shl(operands);
 }
 
 void BitManipulationInstructions::sar(const std::vector<std::string> &operands)
 {
     if (operands.size() != 2)
         throw std::runtime_error("SAR requires 2 operands");
-    
+
     uint8_t count = emulator->getValue8(operands[1]) & 0x1F;
-    
+
     if (emulator->is8BitRegister(operands[0]))
     {
         uint8_t &dest = emulator->getRegister8(operands[0]);
@@ -255,7 +255,7 @@ void BitManipulationInstructions::sar(const std::vector<std::string> &operands)
         uint16_t address = emulator->calculateEffectiveAddress(memOp);
         uint16_t dest = emulator->readMemoryWord(address);
         bool sign = dest & 0x8000;
-        
+
         for (uint8_t i = 0; i < count; i++)
         {
             bool carry = dest & 0x0001;
@@ -289,9 +289,9 @@ void BitManipulationInstructions::shl(const std::vector<std::string> &operands)
 {
     if (operands.size() != 2)
         throw std::runtime_error("SHL requires 2 operands");
-    
+
     uint8_t count = emulator->getValue8(operands[1]) & 0x1F;
-    
+
     if (emulator->is8BitRegister(operands[0]))
     {
         uint8_t &dest = emulator->getRegister8(operands[0]);
@@ -311,7 +311,7 @@ void BitManipulationInstructions::shl(const std::vector<std::string> &operands)
         MemoryOperand memOp = emulator->parseMemoryOperand(operands[0]);
         uint16_t address = emulator->calculateEffectiveAddress(memOp);
         uint16_t dest = emulator->readMemoryWord(address);
-        
+
         for (uint8_t i = 0; i < count; i++)
         {
             bool carry = dest & 0x8000;
@@ -344,9 +344,9 @@ void BitManipulationInstructions::shr(const std::vector<std::string> &operands)
 {
     if (operands.size() != 2)
         throw std::runtime_error("SHR requires 2 operands");
-    
+
     uint8_t count = emulator->getValue8(operands[1]) & 0x1F;
-    
+
     if (emulator->is8BitRegister(operands[0]))
     {
         uint8_t &dest = emulator->getRegister8(operands[0]);
@@ -366,7 +366,7 @@ void BitManipulationInstructions::shr(const std::vector<std::string> &operands)
         MemoryOperand memOp = emulator->parseMemoryOperand(operands[0]);
         uint16_t address = emulator->calculateEffectiveAddress(memOp);
         uint16_t dest = emulator->readMemoryWord(address);
-        
+
         for (uint8_t i = 0; i < count; i++)
         {
             bool carry = dest & 0x0001;

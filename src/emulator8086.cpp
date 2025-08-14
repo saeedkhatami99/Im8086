@@ -15,7 +15,7 @@
 
 Emulator8086::Emulator8086(size_t memSize) : memory(memSize, 0)
 {
-    // Initialize instruction handlers
+
     dataTransfer = std::make_unique<DataTransferInstructions>(this);
     arithmetic = std::make_unique<ArithmeticInstructions>(this);
     logical = std::make_unique<LogicalInstructions>(this);
@@ -23,7 +23,7 @@ Emulator8086::Emulator8086(size_t memSize) : memory(memSize, 0)
     programTransfer = std::make_unique<ProgramTransferInstructions>(this);
     processorControl = std::make_unique<ProcessorControlInstructions>(this);
     bitManipulation = std::make_unique<BitManipulationInstructions>(this);
-    
+
     initializeInstructions();
 }
 
@@ -31,139 +31,253 @@ Emulator8086::~Emulator8086() = default;
 
 void Emulator8086::initializeInstructions()
 {
-    // Data transfer instructions
-    instructions["MOV"] = [this](std::vector<std::string> &operands) { dataTransfer->mov(operands); };
-    instructions["PUSH"] = [this](std::vector<std::string> &operands) { dataTransfer->push(operands); };
-    instructions["POP"] = [this](std::vector<std::string> &operands) { dataTransfer->pop(operands); };
-    instructions["XCHG"] = [this](std::vector<std::string> &operands) { dataTransfer->xchg(operands); };
-    instructions["LEA"] = [this](std::vector<std::string> &operands) { dataTransfer->lea(operands); };
-    instructions["LDS"] = [this](std::vector<std::string> &operands) { dataTransfer->lds(operands); };
-    instructions["LES"] = [this](std::vector<std::string> &operands) { dataTransfer->les(operands); };
-    instructions["LAHF"] = [this](std::vector<std::string> &operands) { dataTransfer->lahf(operands); };
-    instructions["SAHF"] = [this](std::vector<std::string> &operands) { dataTransfer->sahf(operands); };
-    instructions["PUSHF"] = [this](std::vector<std::string> &operands) { dataTransfer->pushf(operands); };
-    instructions["POPF"] = [this](std::vector<std::string> &operands) { dataTransfer->popf(operands); };
-    instructions["PUSHA"] = [this](std::vector<std::string> &operands) { dataTransfer->pusha(operands); };
-    instructions["POPA"] = [this](std::vector<std::string> &operands) { dataTransfer->popa(operands); };
 
-    // Arithmetic instructions
-    instructions["ADD"] = [this](std::vector<std::string> &operands) { arithmetic->add(operands); };
-    instructions["ADC"] = [this](std::vector<std::string> &operands) { arithmetic->adc(operands); };
-    instructions["INC"] = [this](std::vector<std::string> &operands) { arithmetic->inc(operands); };
-    instructions["AAA"] = [this](std::vector<std::string> &operands) { arithmetic->aaa(operands); };
-    instructions["DAA"] = [this](std::vector<std::string> &operands) { arithmetic->daa(operands); };
-    instructions["SUB"] = [this](std::vector<std::string> &operands) { arithmetic->sub(operands); };
-    instructions["SBB"] = [this](std::vector<std::string> &operands) { arithmetic->sbb(operands); };
-    instructions["DEC"] = [this](std::vector<std::string> &operands) { arithmetic->dec(operands); };
-    instructions["NEG"] = [this](std::vector<std::string> &operands) { arithmetic->neg(operands); };
-    instructions["AAS"] = [this](std::vector<std::string> &operands) { arithmetic->aas(operands); };
-    instructions["DAS"] = [this](std::vector<std::string> &operands) { arithmetic->das(operands); };
-    instructions["MUL"] = [this](std::vector<std::string> &operands) { arithmetic->mul(operands); };
-    instructions["IMUL"] = [this](std::vector<std::string> &operands) { arithmetic->imul(operands); };
-    instructions["AAM"] = [this](std::vector<std::string> &operands) { arithmetic->aam(operands); };
-    instructions["DIV"] = [this](std::vector<std::string> &operands) { arithmetic->div(operands); };
-    instructions["IDIV"] = [this](std::vector<std::string> &operands) { arithmetic->idiv(operands); };
-    instructions["AAD"] = [this](std::vector<std::string> &operands) { arithmetic->aad(operands); };
-    instructions["CBW"] = [this](std::vector<std::string> &operands) { arithmetic->cbw(operands); };
-    instructions["CWD"] = [this](std::vector<std::string> &operands) { arithmetic->cwd(operands); };
+    instructions["MOV"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->mov(operands); };
+    instructions["PUSH"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->push(operands); };
+    instructions["POP"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->pop(operands); };
+    instructions["XCHG"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->xchg(operands); };
+    instructions["LEA"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->lea(operands); };
+    instructions["LDS"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->lds(operands); };
+    instructions["LES"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->les(operands); };
+    instructions["LAHF"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->lahf(operands); };
+    instructions["SAHF"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->sahf(operands); };
+    instructions["PUSHF"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->pushf(operands); };
+    instructions["POPF"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->popf(operands); };
+    instructions["PUSHA"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->pusha(operands); };
+    instructions["POPA"] = [this](std::vector<std::string> &operands)
+    { dataTransfer->popa(operands); };
 
-    // Logical instructions
-    instructions["AND"] = [this](std::vector<std::string> &operands) { logical->and_op(operands); };
-    instructions["OR"] = [this](std::vector<std::string> &operands) { logical->or_op(operands); };
-    instructions["XOR"] = [this](std::vector<std::string> &operands) { logical->xor_op(operands); };
-    instructions["NOT"] = [this](std::vector<std::string> &operands) { logical->not_op(operands); };
-    instructions["TEST"] = [this](std::vector<std::string> &operands) { logical->test(operands); };
-    instructions["CMP"] = [this](std::vector<std::string> &operands) { logical->cmp(operands); };
+    instructions["ADD"] = [this](std::vector<std::string> &operands)
+    { arithmetic->add(operands); };
+    instructions["ADC"] = [this](std::vector<std::string> &operands)
+    { arithmetic->adc(operands); };
+    instructions["INC"] = [this](std::vector<std::string> &operands)
+    { arithmetic->inc(operands); };
+    instructions["AAA"] = [this](std::vector<std::string> &operands)
+    { arithmetic->aaa(operands); };
+    instructions["DAA"] = [this](std::vector<std::string> &operands)
+    { arithmetic->daa(operands); };
+    instructions["SUB"] = [this](std::vector<std::string> &operands)
+    { arithmetic->sub(operands); };
+    instructions["SBB"] = [this](std::vector<std::string> &operands)
+    { arithmetic->sbb(operands); };
+    instructions["DEC"] = [this](std::vector<std::string> &operands)
+    { arithmetic->dec(operands); };
+    instructions["NEG"] = [this](std::vector<std::string> &operands)
+    { arithmetic->neg(operands); };
+    instructions["AAS"] = [this](std::vector<std::string> &operands)
+    { arithmetic->aas(operands); };
+    instructions["DAS"] = [this](std::vector<std::string> &operands)
+    { arithmetic->das(operands); };
+    instructions["MUL"] = [this](std::vector<std::string> &operands)
+    { arithmetic->mul(operands); };
+    instructions["IMUL"] = [this](std::vector<std::string> &operands)
+    { arithmetic->imul(operands); };
+    instructions["AAM"] = [this](std::vector<std::string> &operands)
+    { arithmetic->aam(operands); };
+    instructions["DIV"] = [this](std::vector<std::string> &operands)
+    { arithmetic->div(operands); };
+    instructions["IDIV"] = [this](std::vector<std::string> &operands)
+    { arithmetic->idiv(operands); };
+    instructions["AAD"] = [this](std::vector<std::string> &operands)
+    { arithmetic->aad(operands); };
+    instructions["CBW"] = [this](std::vector<std::string> &operands)
+    { arithmetic->cbw(operands); };
+    instructions["CWD"] = [this](std::vector<std::string> &operands)
+    { arithmetic->cwd(operands); };
 
-    // String instructions
-    instructions["MOVSB"] = [this](std::vector<std::string> &operands) { string->movsb(operands); };
-    instructions["MOVSW"] = [this](std::vector<std::string> &operands) { string->movsw(operands); };
-    instructions["CMPSB"] = [this](std::vector<std::string> &operands) { string->cmpsb(operands); };
-    instructions["CMPSW"] = [this](std::vector<std::string> &operands) { string->cmpsw(operands); };
-    instructions["SCASB"] = [this](std::vector<std::string> &operands) { string->scasb(operands); };
-    instructions["SCASW"] = [this](std::vector<std::string> &operands) { string->scasw(operands); };
-    instructions["LODSB"] = [this](std::vector<std::string> &operands) { string->lodsb(operands); };
-    instructions["LODSW"] = [this](std::vector<std::string> &operands) { string->lodsw(operands); };
-    instructions["STOSB"] = [this](std::vector<std::string> &operands) { string->stosb(operands); };
-    instructions["STOSW"] = [this](std::vector<std::string> &operands) { string->stosw(operands); };
-    instructions["REP"] = [this](std::vector<std::string> &operands) { string->rep(operands); };
-    instructions["REPE"] = [this](std::vector<std::string> &operands) { string->repe(operands); };
-    instructions["REPNE"] = [this](std::vector<std::string> &operands) { string->repne(operands); };
-    instructions["REPNZ"] = [this](std::vector<std::string> &operands) { string->repnz(operands); };
-    instructions["REPZ"] = [this](std::vector<std::string> &operands) { string->repz(operands); };
-    instructions["XLAT"] = [this](std::vector<std::string> &operands) { string->xlat(operands); };
-    instructions["XLATB"] = [this](std::vector<std::string> &operands) { string->xlatb(operands); };
+    instructions["AND"] = [this](std::vector<std::string> &operands)
+    { logical->and_op(operands); };
+    instructions["OR"] = [this](std::vector<std::string> &operands)
+    { logical->or_op(operands); };
+    instructions["XOR"] = [this](std::vector<std::string> &operands)
+    { logical->xor_op(operands); };
+    instructions["NOT"] = [this](std::vector<std::string> &operands)
+    { logical->not_op(operands); };
+    instructions["TEST"] = [this](std::vector<std::string> &operands)
+    { logical->test(operands); };
+    instructions["CMP"] = [this](std::vector<std::string> &operands)
+    { logical->cmp(operands); };
 
-    // Program transfer instructions
-    instructions["CALL"] = [this](std::vector<std::string> &operands) { programTransfer->call(operands); };
-    instructions["JMP"] = [this](std::vector<std::string> &operands) { programTransfer->jmp(operands); };
-    instructions["RET"] = [this](std::vector<std::string> &operands) { programTransfer->ret(operands); };
-    instructions["RETF"] = [this](std::vector<std::string> &operands) { programTransfer->retf(operands); };
-    instructions["JE"] = [this](std::vector<std::string> &operands) { programTransfer->je(operands); };
-    instructions["JZ"] = [this](std::vector<std::string> &operands) { programTransfer->je(operands); }; // JZ is same as JE
-    instructions["JL"] = [this](std::vector<std::string> &operands) { programTransfer->jl(operands); };
-    instructions["JNGE"] = [this](std::vector<std::string> &operands) { programTransfer->jl(operands); }; // JNGE is same as JL
-    instructions["JLE"] = [this](std::vector<std::string> &operands) { programTransfer->jle(operands); };
-    instructions["JNG"] = [this](std::vector<std::string> &operands) { programTransfer->jle(operands); }; // JNG is same as JLE
-    instructions["JB"] = [this](std::vector<std::string> &operands) { programTransfer->jb(operands); };
-    instructions["JNAE"] = [this](std::vector<std::string> &operands) { programTransfer->jb(operands); }; // JNAE is same as JB
-    instructions["JC"] = [this](std::vector<std::string> &operands) { programTransfer->jb(operands); }; // JC is same as JB
-    instructions["JBE"] = [this](std::vector<std::string> &operands) { programTransfer->jbe(operands); };
-    instructions["JNA"] = [this](std::vector<std::string> &operands) { programTransfer->jbe(operands); }; // JNA is same as JBE
-    instructions["JP"] = [this](std::vector<std::string> &operands) { programTransfer->jp(operands); };
-    instructions["JPE"] = [this](std::vector<std::string> &operands) { programTransfer->jp(operands); }; // JPE is same as JP
-    instructions["JO"] = [this](std::vector<std::string> &operands) { programTransfer->jo(operands); };
-    instructions["JS"] = [this](std::vector<std::string> &operands) { programTransfer->js(operands); };
-    instructions["JNE"] = [this](std::vector<std::string> &operands) { programTransfer->jne(operands); };
-    instructions["JNZ"] = [this](std::vector<std::string> &operands) { programTransfer->jne(operands); }; // JNZ is same as JNE
-    instructions["JNL"] = [this](std::vector<std::string> &operands) { programTransfer->jnl(operands); };
-    instructions["JGE"] = [this](std::vector<std::string> &operands) { programTransfer->jnl(operands); }; // JGE is same as JNL
-    instructions["JG"] = [this](std::vector<std::string> &operands) { programTransfer->jg(operands); };
-    instructions["JNLE"] = [this](std::vector<std::string> &operands) { programTransfer->jg(operands); }; // JNLE is same as JG
-    instructions["JNB"] = [this](std::vector<std::string> &operands) { programTransfer->jnb(operands); };
-    instructions["JAE"] = [this](std::vector<std::string> &operands) { programTransfer->jnb(operands); }; // JAE is same as JNB
-    instructions["JNC"] = [this](std::vector<std::string> &operands) { programTransfer->jnb(operands); }; // JNC is same as JNB
-    instructions["JA"] = [this](std::vector<std::string> &operands) { programTransfer->ja(operands); };
-    instructions["JNBE"] = [this](std::vector<std::string> &operands) { programTransfer->ja(operands); }; // JNBE is same as JA
-    instructions["JNP"] = [this](std::vector<std::string> &operands) { programTransfer->jnp(operands); };
-    instructions["JPO"] = [this](std::vector<std::string> &operands) { programTransfer->jnp(operands); }; // JPO is same as JNP
-    instructions["JNO"] = [this](std::vector<std::string> &operands) { programTransfer->jno(operands); };
-    instructions["JNS"] = [this](std::vector<std::string> &operands) { programTransfer->jns(operands); };
-    instructions["LOOP"] = [this](std::vector<std::string> &operands) { programTransfer->loop(operands); };
-    instructions["LOOPZ"] = [this](std::vector<std::string> &operands) { programTransfer->loopz(operands); };
-    instructions["LOOPE"] = [this](std::vector<std::string> &operands) { programTransfer->loopz(operands); }; // LOOPE is same as LOOPZ
-    instructions["LOOPNZ"] = [this](std::vector<std::string> &operands) { programTransfer->loopnz(operands); };
-    instructions["LOOPNE"] = [this](std::vector<std::string> &operands) { programTransfer->loopnz(operands); }; // LOOPNE is same as LOOPNZ
-    instructions["JCXZ"] = [this](std::vector<std::string> &operands) { programTransfer->jcxz(operands); };
+    instructions["MOVSB"] = [this](std::vector<std::string> &operands)
+    { string->movsb(operands); };
+    instructions["MOVSW"] = [this](std::vector<std::string> &operands)
+    { string->movsw(operands); };
+    instructions["CMPSB"] = [this](std::vector<std::string> &operands)
+    { string->cmpsb(operands); };
+    instructions["CMPSW"] = [this](std::vector<std::string> &operands)
+    { string->cmpsw(operands); };
+    instructions["SCASB"] = [this](std::vector<std::string> &operands)
+    { string->scasb(operands); };
+    instructions["SCASW"] = [this](std::vector<std::string> &operands)
+    { string->scasw(operands); };
+    instructions["LODSB"] = [this](std::vector<std::string> &operands)
+    { string->lodsb(operands); };
+    instructions["LODSW"] = [this](std::vector<std::string> &operands)
+    { string->lodsw(operands); };
+    instructions["STOSB"] = [this](std::vector<std::string> &operands)
+    { string->stosb(operands); };
+    instructions["STOSW"] = [this](std::vector<std::string> &operands)
+    { string->stosw(operands); };
+    instructions["REP"] = [this](std::vector<std::string> &operands)
+    { string->rep(operands); };
+    instructions["REPE"] = [this](std::vector<std::string> &operands)
+    { string->repe(operands); };
+    instructions["REPNE"] = [this](std::vector<std::string> &operands)
+    { string->repne(operands); };
+    instructions["REPNZ"] = [this](std::vector<std::string> &operands)
+    { string->repnz(operands); };
+    instructions["REPZ"] = [this](std::vector<std::string> &operands)
+    { string->repz(operands); };
+    instructions["XLAT"] = [this](std::vector<std::string> &operands)
+    { string->xlat(operands); };
+    instructions["XLATB"] = [this](std::vector<std::string> &operands)
+    { string->xlatb(operands); };
 
-    // Processor control instructions
-    instructions["CLC"] = [this](std::vector<std::string> &operands) { processorControl->clc(operands); };
-    instructions["CMC"] = [this](std::vector<std::string> &operands) { processorControl->cmc(operands); };
-    instructions["STC"] = [this](std::vector<std::string> &operands) { processorControl->stc(operands); };
-    instructions["CLD"] = [this](std::vector<std::string> &operands) { processorControl->cld(operands); };
-    instructions["STD"] = [this](std::vector<std::string> &operands) { processorControl->std(operands); };
-    instructions["CLI"] = [this](std::vector<std::string> &operands) { processorControl->cli(operands); };
-    instructions["STI"] = [this](std::vector<std::string> &operands) { processorControl->sti(operands); };
-    instructions["HLT"] = [this](std::vector<std::string> &operands) { processorControl->hlt(operands); };
-    instructions["WAIT"] = [this](std::vector<std::string> &operands) { processorControl->wait(operands); };
-    instructions["ESC"] = [this](std::vector<std::string> &operands) { processorControl->esc(operands); };
-    instructions["LOCK"] = [this](std::vector<std::string> &operands) { processorControl->lock(operands); };
-    instructions["NOP"] = [this](std::vector<std::string> &operands) { processorControl->nop(operands); };
-    instructions["INT"] = [this](std::vector<std::string> &operands) { processorControl->int_op(operands); };
-    instructions["INTO"] = [this](std::vector<std::string> &operands) { processorControl->into(operands); };
-    instructions["IRET"] = [this](std::vector<std::string> &operands) { processorControl->iret(operands); };
-    instructions["IN"] = [this](std::vector<std::string> &operands) { processorControl->in_op(operands); };
-    instructions["OUT"] = [this](std::vector<std::string> &operands) { processorControl->out(operands); };
+    instructions["CALL"] = [this](std::vector<std::string> &operands)
+    { programTransfer->call(operands); };
+    instructions["JMP"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jmp(operands); };
+    instructions["RET"] = [this](std::vector<std::string> &operands)
+    { programTransfer->ret(operands); };
+    instructions["RETF"] = [this](std::vector<std::string> &operands)
+    { programTransfer->retf(operands); };
+    instructions["JE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->je(operands); };
+    instructions["JZ"] = [this](std::vector<std::string> &operands)
+    { programTransfer->je(operands); };
+    instructions["JL"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jl(operands); };
+    instructions["JNGE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jl(operands); };
+    instructions["JLE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jle(operands); };
+    instructions["JNG"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jle(operands); };
+    instructions["JB"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jb(operands); };
+    instructions["JNAE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jb(operands); };
+    instructions["JC"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jb(operands); };
+    instructions["JBE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jbe(operands); };
+    instructions["JNA"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jbe(operands); };
+    instructions["JP"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jp(operands); };
+    instructions["JPE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jp(operands); };
+    instructions["JO"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jo(operands); };
+    instructions["JS"] = [this](std::vector<std::string> &operands)
+    { programTransfer->js(operands); };
+    instructions["JNE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jne(operands); };
+    instructions["JNZ"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jne(operands); };
+    instructions["JNL"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jnl(operands); };
+    instructions["JGE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jnl(operands); };
+    instructions["JG"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jg(operands); };
+    instructions["JNLE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jg(operands); };
+    instructions["JNB"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jnb(operands); };
+    instructions["JAE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jnb(operands); };
+    instructions["JNC"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jnb(operands); };
+    instructions["JA"] = [this](std::vector<std::string> &operands)
+    { programTransfer->ja(operands); };
+    instructions["JNBE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->ja(operands); };
+    instructions["JNP"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jnp(operands); };
+    instructions["JPO"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jnp(operands); };
+    instructions["JNO"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jno(operands); };
+    instructions["JNS"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jns(operands); };
+    instructions["LOOP"] = [this](std::vector<std::string> &operands)
+    { programTransfer->loop(operands); };
+    instructions["LOOPZ"] = [this](std::vector<std::string> &operands)
+    { programTransfer->loopz(operands); };
+    instructions["LOOPE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->loopz(operands); };
+    instructions["LOOPNZ"] = [this](std::vector<std::string> &operands)
+    { programTransfer->loopnz(operands); };
+    instructions["LOOPNE"] = [this](std::vector<std::string> &operands)
+    { programTransfer->loopnz(operands); };
+    instructions["JCXZ"] = [this](std::vector<std::string> &operands)
+    { programTransfer->jcxz(operands); };
 
-    // Bit manipulation instructions
-    instructions["RCL"] = [this](std::vector<std::string> &operands) { bitManipulation->rcl(operands); };
-    instructions["RCR"] = [this](std::vector<std::string> &operands) { bitManipulation->rcr(operands); };
-    instructions["ROL"] = [this](std::vector<std::string> &operands) { bitManipulation->rol(operands); };
-    instructions["ROR"] = [this](std::vector<std::string> &operands) { bitManipulation->ror(operands); };
-    instructions["SAL"] = [this](std::vector<std::string> &operands) { bitManipulation->sal(operands); };
-    instructions["SAR"] = [this](std::vector<std::string> &operands) { bitManipulation->sar(operands); };
-    instructions["SHL"] = [this](std::vector<std::string> &operands) { bitManipulation->shl(operands); };
-    instructions["SHR"] = [this](std::vector<std::string> &operands) { bitManipulation->shr(operands); };
+    instructions["CLC"] = [this](std::vector<std::string> &operands)
+    { processorControl->clc(operands); };
+    instructions["CMC"] = [this](std::vector<std::string> &operands)
+    { processorControl->cmc(operands); };
+    instructions["STC"] = [this](std::vector<std::string> &operands)
+    { processorControl->stc(operands); };
+    instructions["CLD"] = [this](std::vector<std::string> &operands)
+    { processorControl->cld(operands); };
+    instructions["STD"] = [this](std::vector<std::string> &operands)
+    { processorControl->std(operands); };
+    instructions["CLI"] = [this](std::vector<std::string> &operands)
+    { processorControl->cli(operands); };
+    instructions["STI"] = [this](std::vector<std::string> &operands)
+    { processorControl->sti(operands); };
+    instructions["HLT"] = [this](std::vector<std::string> &operands)
+    { processorControl->hlt(operands); };
+    instructions["WAIT"] = [this](std::vector<std::string> &operands)
+    { processorControl->wait(operands); };
+    instructions["ESC"] = [this](std::vector<std::string> &operands)
+    { processorControl->esc(operands); };
+    instructions["LOCK"] = [this](std::vector<std::string> &operands)
+    { processorControl->lock(operands); };
+    instructions["NOP"] = [this](std::vector<std::string> &operands)
+    { processorControl->nop(operands); };
+    instructions["INT"] = [this](std::vector<std::string> &operands)
+    { processorControl->int_op(operands); };
+    instructions["INTO"] = [this](std::vector<std::string> &operands)
+    { processorControl->into(operands); };
+    instructions["IRET"] = [this](std::vector<std::string> &operands)
+    { processorControl->iret(operands); };
+    instructions["IN"] = [this](std::vector<std::string> &operands)
+    { processorControl->in_op(operands); };
+    instructions["OUT"] = [this](std::vector<std::string> &operands)
+    { processorControl->out(operands); };
+
+    instructions["RCL"] = [this](std::vector<std::string> &operands)
+    { bitManipulation->rcl(operands); };
+    instructions["RCR"] = [this](std::vector<std::string> &operands)
+    { bitManipulation->rcr(operands); };
+    instructions["ROL"] = [this](std::vector<std::string> &operands)
+    { bitManipulation->rol(operands); };
+    instructions["ROR"] = [this](std::vector<std::string> &operands)
+    { bitManipulation->ror(operands); };
+    instructions["SAL"] = [this](std::vector<std::string> &operands)
+    { bitManipulation->sal(operands); };
+    instructions["SAR"] = [this](std::vector<std::string> &operands)
+    { bitManipulation->sar(operands); };
+    instructions["SHL"] = [this](std::vector<std::string> &operands)
+    { bitManipulation->shl(operands); };
+    instructions["SHR"] = [this](std::vector<std::string> &operands)
+    { bitManipulation->shr(operands); };
 }
 
 uint16_t &Emulator8086::getRegister(const std::string &reg)
@@ -416,12 +530,12 @@ void Emulator8086::executeInstruction(const std::string &instruction)
     std::string operand;
     while (std::getline(iss, operand, ','))
     {
-        operand.erase(operand.begin(), std::find_if(operand.begin(), operand.end(), [](int ch) {
-            return !std::isspace(ch);
-        }));
-        operand.erase(std::find_if(operand.rbegin(), operand.rend(), [](int ch) {
-            return !std::isspace(ch);
-        }).base(), operand.end());
+        operand.erase(operand.begin(), std::find_if(operand.begin(), operand.end(), [](int ch)
+                                                    { return !std::isspace(ch); }));
+        operand.erase(std::find_if(operand.rbegin(), operand.rend(), [](int ch)
+                                   { return !std::isspace(ch); })
+                          .base(),
+                      operand.end());
         if (!operand.empty())
             operands.push_back(operand);
     }
@@ -632,6 +746,6 @@ void Emulator8086::displayHelp()
     std::cout << "  :3xit              - Exit emulator\n";
     std::cout << "----------------------------------------\n";
     std::cout << "Notes: Use 'h' suffix for hex (e.g., 10h), memory as [BX+SI+offset]\n";
-    //std::cout << "Enhanced Features: Full XCHG memory support, Complete REP prefixes,\n";
-    //std::cout << "Enhanced I/O simulation, Comprehensive interrupt handling\n";
+    // std::cout << "Enhanced Features: Full XCHG memory support, Complete REP prefixes,\n";
+    // std::cout << "Enhanced I/O simulation, Comprehensive interrupt handling\n";
 }

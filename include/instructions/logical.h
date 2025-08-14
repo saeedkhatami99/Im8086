@@ -6,17 +6,16 @@
 #include "../registers.h"
 #include "../memory_components.h"
 
-class Emulator8086; // Forward declaration
+class Emulator8086;
 
 class LogicalInstructions
 {
 private:
-    Emulator8086* emulator;
+    Emulator8086 *emulator;
 
 public:
-    LogicalInstructions(Emulator8086* emu);
-    
-    // Logical instructions
+    LogicalInstructions(Emulator8086 *emu);
+
     void and_op(const std::vector<std::string> &operands);
     void or_op(const std::vector<std::string> &operands);
     void xor_op(const std::vector<std::string> &operands);

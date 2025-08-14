@@ -6,17 +6,16 @@
 #include "../registers.h"
 #include "../memory_components.h"
 
-class Emulator8086; // Forward declaration
+class Emulator8086;
 
 class BitManipulationInstructions
 {
 private:
-    Emulator8086* emulator;
+    Emulator8086 *emulator;
 
 public:
-    BitManipulationInstructions(Emulator8086* emu);
-    
-    // Rotate and shift instructions
+    BitManipulationInstructions(Emulator8086 *emu);
+
     void rcl(const std::vector<std::string> &operands);
     void rcr(const std::vector<std::string> &operands);
     void rol(const std::vector<std::string> &operands);

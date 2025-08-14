@@ -6,23 +6,21 @@
 #include "../registers.h"
 #include "../memory_components.h"
 
-class Emulator8086; // Forward declaration
+class Emulator8086;
 
 class ProgramTransferInstructions
 {
 private:
-    Emulator8086* emulator;
+    Emulator8086 *emulator;
 
 public:
-    ProgramTransferInstructions(Emulator8086* emu);
-    
-    // Program transfer instructions
+    ProgramTransferInstructions(Emulator8086 *emu);
+
     void call(const std::vector<std::string> &operands);
     void jmp(const std::vector<std::string> &operands);
     void ret(const std::vector<std::string> &operands);
     void retf(const std::vector<std::string> &operands);
-    
-    // Conditional jumps
+
     void je(const std::vector<std::string> &operands);
     void jl(const std::vector<std::string> &operands);
     void jle(const std::vector<std::string> &operands);
@@ -39,8 +37,7 @@ public:
     void jnp(const std::vector<std::string> &operands);
     void jno(const std::vector<std::string> &operands);
     void jns(const std::vector<std::string> &operands);
-    
-    // Loop instructions
+
     void loop(const std::vector<std::string> &operands);
     void loopz(const std::vector<std::string> &operands);
     void loopnz(const std::vector<std::string> &operands);

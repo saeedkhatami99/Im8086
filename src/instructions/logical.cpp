@@ -2,7 +2,7 @@
 #include "emulator8086.h"
 #include <stdexcept>
 
-LogicalInstructions::LogicalInstructions(Emulator8086* emu) : emulator(emu) {}
+LogicalInstructions::LogicalInstructions(Emulator8086 *emu) : emulator(emu) {}
 
 void LogicalInstructions::and_op(const std::vector<std::string> &operands)
 {

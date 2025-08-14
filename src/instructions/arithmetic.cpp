@@ -2,7 +2,7 @@
 #include "emulator8086.h"
 #include <stdexcept>
 
-ArithmeticInstructions::ArithmeticInstructions(Emulator8086* emu) : emulator(emu) {}
+ArithmeticInstructions::ArithmeticInstructions(Emulator8086 *emu) : emulator(emu) {}
 
 void ArithmeticInstructions::add(const std::vector<std::string> &operands)
 {
@@ -79,7 +79,7 @@ void ArithmeticInstructions::inc(const std::vector<std::string> &operands)
         uint8_t &dest = emulator->getRegister8(operands[0]);
         uint16_t result = dest + 1;
         dest = result & 0xFF;
-        emulator->updateFlags(result, true, false); // INC doesn't affect carry flag
+        emulator->updateFlags(result, true, false);
     }
     else if (emulator->isMemoryOperand(operands[0]))
     {
@@ -210,7 +210,7 @@ void ArithmeticInstructions::dec(const std::vector<std::string> &operands)
         uint8_t &dest = emulator->getRegister8(operands[0]);
         uint16_t result = dest - 1;
         dest = result & 0xFF;
-        emulator->updateFlags(result, true, false); // DEC doesn't affect carry flag
+        emulator->updateFlags(result, true, false);
     }
     else if (emulator->isMemoryOperand(operands[0]))
     {

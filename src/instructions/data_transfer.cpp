@@ -80,10 +80,10 @@ void DataTransferInstructions::xchg(const std::vector<std::string> &operands)
     }
     else
     {
-        // Enhanced implementation for memory operands
+        
         if (emulator->isMemoryOperand(operands[0]) && !emulator->isMemoryOperand(operands[1]))
         {
-            // XCHG memory, register
+            
             MemoryOperand memOp = emulator->parseMemoryOperand(operands[0]);
             uint16_t address = emulator->calculateEffectiveAddress(memOp);
             if (emulator->is8BitRegister(operands[1]))
@@ -101,7 +101,7 @@ void DataTransferInstructions::xchg(const std::vector<std::string> &operands)
         }
         else if (!emulator->isMemoryOperand(operands[0]) && emulator->isMemoryOperand(operands[1]))
         {
-            // XCHG register, memory
+            
             MemoryOperand memOp = emulator->parseMemoryOperand(operands[1]);
             uint16_t address = emulator->calculateEffectiveAddress(memOp);
             if (emulator->is8BitRegister(operands[0]))
@@ -211,7 +211,7 @@ void DataTransferInstructions::popa(const std::vector<std::string> &operands)
     pop({"DI"});
     pop({"SI"});
     pop({"BP"});
-    emulator->getRegisters().SP += 2; // Skip the SP value that was pushed by PUSHA
+    emulator->getRegisters().SP += 2; 
     pop({"BX"});
     pop({"DX"});
     pop({"CX"});

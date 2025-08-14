@@ -6,17 +6,16 @@
 #include "../registers.h"
 #include "../memory_components.h"
 
-class Emulator8086; // Forward declaration
+class Emulator8086;
 
 class DataTransferInstructions
 {
 private:
-    Emulator8086* emulator;
+    Emulator8086 *emulator;
 
 public:
-    DataTransferInstructions(Emulator8086* emu);
-    
-    // Data transfer instructions
+    DataTransferInstructions(Emulator8086 *emu);
+
     void mov(const std::vector<std::string> &operands);
     void push(const std::vector<std::string> &operands);
     void pop(const std::vector<std::string> &operands);

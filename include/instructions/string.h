@@ -6,17 +6,16 @@
 #include "../registers.h"
 #include "../memory_components.h"
 
-class Emulator8086; // Forward declaration
+class Emulator8086;
 
 class StringInstructions
 {
 private:
-    Emulator8086* emulator;
+    Emulator8086 *emulator;
 
 public:
-    StringInstructions(Emulator8086* emu);
-    
-    // String instructions
+    StringInstructions(Emulator8086 *emu);
+
     void movsb(const std::vector<std::string> &operands);
     void movsw(const std::vector<std::string> &operands);
     void cmpsb(const std::vector<std::string> &operands);

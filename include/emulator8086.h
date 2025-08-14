@@ -9,7 +9,6 @@
 #include "registers.h"
 #include "memory_components.h"
 
-// Forward declarations
 class DataTransferInstructions;
 class ArithmeticInstructions;
 class LogicalInstructions;
@@ -28,7 +27,6 @@ private:
     std::map<std::string, size_t> labels;
     std::vector<std::string> program;
 
-    // Instruction handlers
     std::unique_ptr<DataTransferInstructions> dataTransfer;
     std::unique_ptr<ArithmeticInstructions> arithmetic;
     std::unique_ptr<LogicalInstructions> logical;
@@ -42,14 +40,13 @@ private:
 public:
     explicit Emulator8086(size_t memSize = 1024 * 1024);
     ~Emulator8086();
-    
+
     void executeInstruction(const std::string &instruction);
     void displayRegisters();
     void displayStack();
     void displayMemory(uint16_t address, uint16_t count);
     void displayHelp();
 
-    // Helper methods for instruction classes
     uint16_t &getRegister(const std::string &reg);
     uint8_t &getRegister8(const std::string &reg);
     bool is8BitRegister(const std::string &reg);
@@ -63,11 +60,10 @@ public:
     void writeMemoryWord(uint16_t address, uint16_t value);
     uint8_t readMemoryByte(uint16_t address);
     void writeMemoryByte(uint16_t address, uint8_t value);
-    
-    // Register and memory access
-    Registers& getRegisters() { return regs; }
-    std::vector<uint8_t>& getMemory() { return memory; }
-    std::map<std::string, size_t>& getLabels() { return labels; }
+
+    Registers &getRegisters() { return regs; }
+    std::vector<uint8_t> &getMemory() { return memory; }
+    std::map<std::string, size_t> &getLabels() { return labels; }
 };
 
 #endif
