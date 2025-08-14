@@ -1,109 +1,130 @@
-# Compiler detection - can be overridden by environment
-ifeq ($(OS),Windows_NT)
-    CXX ?= g++
-    RM = del /Q /F
-    EXE = .exe
-    ZIP = powershell -Command "Compress-Archive -Path '$(EXECUTABLE)' -DestinationPath '$(BUILD_DIR)/$(ZIP_NAME)'"
+#   make                (build default configuration)
+#   make BUILD=debug    (debug build with symbols)
+#   make run            (run emulator REPL)
+#   make run-tui FILE=./samples/sample_01.txt   (run TUI with program)
+#   make clean          (remove build artifacts)
+#   make dist           (zip executable)
+#   make help           (show help)
+
+OS ?= $(shell uname)
+CXX ?= g++
+AR ?= ar
+RM ?= rm -f
+MKDIR_P ?= mkdir -p
+BUILD ?= release
+TARGET ?= 8086emu
+STD ?= c++17
+WARN ?= -Wall -Wextra -Wpedantic
+DEFS ?=
+INCLUDES ?= -Iinclude
+CPPFLAGS ?= $(DEFS) $(INCLUDES)
+
+ifeq ($(BUILD),debug)
+  OPT ?= -O0 -g
+  DEFS += -DDEBUG
 else
-    CXX ?= g++
-    RM = rm -f
-    EXE =
-    ZIP = zip -j $(BUILD_DIR)/$(ZIP_NAME) $(EXECUTABLE)
+  OPT ?= -O2
 endif
 
-CXXFLAGS = -Wall -std=c++14 -I./include
+CXXFLAGS += $(WARN) -std=$(STD) $(OPT)
+LDFLAGS ?=
+LDLIBS ?= -lncurses
 
-# Architecture handling
-ifeq ($(ARCH), 64)
-    CXXFLAGS += -m64
-    ARCH_SUFFIX = _64
-else ifeq ($(ARCH), arm)
-    ifeq ($(shell uname),Darwin)
-        # macOS ARM
-        CXXFLAGS += -arch arm64
-    else ifeq ($(OS),Windows_NT)
-        # Windows ARM (if using clang)
-        ifdef CXXFLAGS_ARM
-            CXXFLAGS += $(CXXFLAGS_ARM)
-        endif
-    else
-        # Linux ARM - cross compilation handled by CXX environment variable
-        # CXX should be set to aarch64-linux-gnu-g++ by GitHub Actions
-    endif
-    ARCH_SUFFIX = _arm
-else
-    ARCH_SUFFIX =
+SRC_DIR := src
+BUILD_DIR := build
+OBJ_DIR := $(BUILD_DIR)/obj
+DEP_DIR := $(BUILD_DIR)/dep
+
+SRCS := $(wildcard $(SRC_DIR)/*.cpp) \
+        $(wildcard $(SRC_DIR)/instructions/*.cpp)
+
+OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
+DEPS := $(patsubst $(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(SRCS))
+
+EXECUTABLE := $(BUILD_DIR)/$(TARGET)
+
+ARCH_SUFFIX :=
+ifeq ($(ARCH),64)
+  CXXFLAGS += -m64
+  ARCH_SUFFIX := _64
 endif
-
-# OS detection for naming
-ifeq ($(OS),Windows_NT)
-    OS_SUFFIX = _windows
-else ifeq ($(shell uname),Darwin)
-    OS_SUFFIX = _macos
-else
-    OS_SUFFIX = _linux
+ifeq ($(ARCH),arm)
+  ARCH_SUFFIX := _arm
 endif
-
-TARGET = 8086emu
-ZIP_NAME = $(TARGET)$(ARCH_SUFFIX)$(OS_SUFFIX).zip
-
-SRC_DIR = src
-INC_DIR = include
-BUILD_DIR = build
-OBJ_DIR = obj
-SOURCES = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/instructions/*.cpp)
-OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SOURCES))
-EXECUTABLE = $(BUILD_DIR)/$(TARGET)$(EXE)
 
 ifeq ($(OS),Darwin)
-    ifeq ($(ARCH), 64)
-        CXXFLAGS += -arch x86_64
-    else ifeq ($(ARCH), arm)
-        CXXFLAGS += -arch arm64
-    endif
+  OS_SUFFIX := _macos
+else ifeq ($(OS),Linux)
+  OS_SUFFIX := _linux
+else
+  OS_SUFFIX := _other
 endif
 
+DIST_ZIP := $(BUILD_DIR)/$(TARGET)$(ARCH_SUFFIX)$(OS_SUFFIX).zip
+
+.PHONY: all
 all: $(EXECUTABLE)
 
-$(EXECUTABLE): $(OBJECTS) | $(BUILD_DIR)
-	$(CXX) $(OBJECTS) -o $(EXECUTABLE)
+$(EXECUTABLE): $(OBJS) | $(BUILD_DIR)
+	$(CXX) $(OBJS) $(LDFLAGS) -o $@ $(LDLIBS)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR) $(OBJ_DIR)/instructions
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR) $(DEP_DIR)
+	@$(MKDIR_P) $(dir $(DEP_DIR)/$*.d)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -MF $(DEP_DIR)/$*.d -c $< -o $@
+
+-include $(DEPS)
 
 $(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
-
+	$(MKDIR_P) $(BUILD_DIR)
 $(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
+	$(MKDIR_P) $(OBJ_DIR) $(OBJ_DIR)/instructions
+$(DEP_DIR):
+	$(MKDIR_P) $(DEP_DIR) $(DEP_DIR)/instructions
 
-$(OBJ_DIR)/instructions:
-	mkdir -p $(OBJ_DIR)/instructions
+.PHONY: run run-tui rebuild clean dist check help format
 
-check:
-	@echo "Running basic functionality test..."
-	@if [ -f "$(EXECUTABLE)" ]; then \
-		echo "✓ Executable exists: $(EXECUTABLE)"; \
-		echo "✓ Build successful"; \
-	else \
-		echo "✗ Executable not found: $(EXECUTABLE)"; \
-		exit 1; \
-	fi
+run: $(EXECUTABLE)
+	$(EXECUTABLE)
 
-distcheck: $(EXECUTABLE)
-	@echo "Creating distribution package..."
-	@echo "Executable: $(EXECUTABLE)"
-	@echo "ZIP target: $(BUILD_DIR)/$(ZIP_NAME)"
-	@if [ -f "$(EXECUTABLE)" ]; then \
-		echo "✓ Executable verified"; \
-		$(ZIP); \
-		echo "✓ Distribution package created: $(BUILD_DIR)/$(ZIP_NAME)"; \
-	else \
-		echo "✗ Cannot create distribution: executable not found"; \
-		exit 1; \
-	fi
+run-tui: $(EXECUTABLE)
+ifeq ($(FILE),)
+	@echo "Specify FILE=<program file> e.g. make run-tui FILE=samples/sample_01.txt" && exit 1
+else
+	$(EXECUTABLE) --tui $(FILE)
+endif
 
-.PHONY: all check distcheck clean
+rebuild: clean all
 
 clean:
-	$(RM) -r $(OBJ_DIR) $(BUILD_DIR)
+	$(RM) -r $(BUILD_DIR)
+
+dist: $(EXECUTABLE)
+	@echo "Creating distribution: $(DIST_ZIP)";
+	cd $(BUILD_DIR) && zip -q $(notdir $(DIST_ZIP)) $(notdir $(EXECUTABLE))
+	@echo "Done."
+
+check: $(EXECUTABLE)
+	@echo "Executable size: $$(stat -c%s $(EXECUTABLE) 2>/dev/null || stat -f%z $(EXECUTABLE)) bytes"
+	@echo "✓ Build OK"
+
+help:
+	@echo "Targets:";
+	@echo "  all (default)   Build executable";
+	@echo "  run              Run REPL";
+	@echo "  run-tui FILE=..  Run TUI with program file";
+	@echo "  rebuild          Clean then build";
+	@echo "  clean            Remove build artifacts";
+	@echo "  dist             Create zip distribution";
+	@echo "  check            Basic build verification";
+	@echo "Variables:";
+	@echo "  BUILD=debug|release (current: $(BUILD))";
+	@echo "  TARGET (current: $(TARGET))";
+	@echo "  ARCH=64|arm (optional)";
+	@echo "Examples:";
+	@echo "  make BUILD=debug";
+	@echo "  make run-tui FILE=samples/sample_01.txt";
+	@echo "  make dist";
+
+format:
+	@echo "(Placeholder) Add formatting step here if desired."
+

@@ -42,6 +42,13 @@ public:
     ~Emulator8086();
 
     void executeInstruction(const std::string &instruction);
+
+    void loadProgram(const std::vector<std::string> &lines);
+    bool step();
+    void reset();
+    const std::vector<std::string> &getProgram() const { return program; }
+    size_t getIP() const { return regs.IP; }
+    void setIP(size_t ip) { regs.IP = static_cast<uint16_t>(ip); }
     void displayRegisters();
     void displayStack();
     void displayMemory(uint16_t address, uint16_t count);

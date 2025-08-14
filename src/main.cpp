@@ -1,11 +1,32 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <fstream>
+#include <vector>
 #include "emulator8086.h"
+#include "tui.h"
 
-int main()
+int main(int argc, char **argv)
 {
     Emulator8086 emu;
+    if (argc >= 3 && std::string(argv[1]) == "--tui")
+    {
+        std::ifstream fin(argv[2]);
+        if (!fin)
+        {
+            std::cerr << "Failed to open program file: " << argv[2] << "\n";
+            return 1;
+        }
+        std::vector<std::string> lines;
+        std::string line;
+        while (std::getline(fin, line))
+            lines.push_back(line);
+        emu.loadProgram(lines);
+        EmulatorTUI tui(&emu);
+        tui.run();
+        return 0;
+    }
+
     std::string input;
 
     std::cout << "8086 Emulator\n";

@@ -551,6 +551,69 @@ void Emulator8086::executeInstruction(const std::string &instruction)
     }
 }
 
+void Emulator8086::loadProgram(const std::vector<std::string> &lines)
+{
+    program.clear();
+    labels.clear();
+    regs.IP = 0;
+
+    for (size_t i = 0; i < lines.size(); ++i)
+    {
+        std::string line = lines[i];
+
+        line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](int ch)
+                                              { return !std::isspace(ch); }));
+        line.erase(std::find_if(line.rbegin(), line.rend(), [](int ch)
+                                { return !std::isspace(ch); })
+                       .base(),
+                   line.end());
+        if (line.empty())
+            continue;
+
+        auto scPos = line.find(';');
+        if (scPos != std::string::npos)
+            line = line.substr(0, scPos);
+        if (line.empty())
+            continue;
+        if (line.back() == ':')
+        {
+            std::string label = line.substr(0, line.size() - 1);
+            std::transform(label.begin(), label.end(), label.begin(), ::toupper);
+            labels[label] = program.size();
+        }
+        else
+        {
+            program.push_back(line);
+        }
+    }
+}
+
+bool Emulator8086::step()
+{
+    if (regs.IP >= program.size())
+        return false;
+    std::string instr = program[regs.IP];
+    size_t oldIP = regs.IP;
+    try
+    {
+        executeInstruction(instr);
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Execution error at IP=" << oldIP << ": " << e.what() << "\n";
+    }
+
+    if (regs.IP == oldIP)
+        regs.IP++;
+    return regs.IP < program.size();
+}
+
+void Emulator8086::reset()
+{
+    regs = Registers();
+    std::fill(memory.begin(), memory.end(), 0);
+}
+
 void Emulator8086::displayRegisters()
 {
     std::cout << std::hex << std::uppercase << std::setfill('0')
@@ -746,6 +809,4 @@ void Emulator8086::displayHelp()
     std::cout << "  :3xit              - Exit emulator\n";
     std::cout << "----------------------------------------\n";
     std::cout << "Notes: Use 'h' suffix for hex (e.g., 10h), memory as [BX+SI+offset]\n";
-    // std::cout << "Enhanced Features: Full XCHG memory support, Complete REP prefixes,\n";
-    // std::cout << "Enhanced I/O simulation, Comprehensive interrupt handling\n";
 }
