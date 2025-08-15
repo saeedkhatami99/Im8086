@@ -60,12 +60,17 @@ endif
 ifeq ($(ARCH),arm)
   ARCH_SUFFIX := _arm
   ifneq ($(findstring aarch64,$(CXX)),)
+  else ifneq ($(findstring arm,$(CXX)),)
   else ifneq ($(findstring clang,$(CXX)),)
     ifdef CXXFLAGS_ARM
       CXXFLAGS += $(CXXFLAGS_ARM)
     endif
   else
-    CXXFLAGS += -march=armv8-a
+    ifeq ($(shell $(CXX) -dumpmachine 2>/dev/null | grep -E '(aarch64|arm)'),)
+      $(warning Warning: ARCH=arm specified but $(CXX) is not an ARM cross-compiler)
+    else
+      CXXFLAGS += -march=armv8-a
+    endif
   endif
 endif
 
