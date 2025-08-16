@@ -21,23 +21,11 @@ jobs:
             cc: gcc
             cxx: g++
             deps: libncurses5-dev
-          - os: ubuntu-latest
-            target: linux-arm64
-            cc: aarch64-linux-gnu-gcc
-            cxx: aarch64-linux-gnu-g++
-            deps: libncurses5-dev gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-            arch: arm
           - os: macos-latest
             target: macos-x64
             cc: clang
             cxx: clang++
             deps: ncurses
-          - os: macos-latest
-            target: macos-arm64
-            cc: clang
-            cxx: clang++
-            deps: ncurses
-            arch: arm
           - os: windows-latest
             target: windows-x64
             cc: gcc
@@ -64,30 +52,43 @@ jobs:
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
-        # Install PDCurses via vcpkg or similar
-        # For now, we'll use a pre-built version or system libraries
-        echo "Installing Windows dependencies..."
+        # Install PDCurses
+        vcpkg install pdcurses:x64-windows
+        echo "VCPKG_ROOT=C:/vcpkg" >> $GITHUB_ENV
+        echo "CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
 
     - name: Set up build environment
       run: |
         echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
         echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          echo "INCLUDES=-I$VCPKG_ROOT/installed/x64-windows/include" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$VCPKG_ROOT/installed/x64-windows/lib" >> $GITHUB_ENV
+        fi
 
     - name: Build (Release)
       run: |
-        make BUILD=release TARGET=${{ env.TARGET }} ${{ matrix.arch && format('ARCH={0}', matrix.arch) || '' }}
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          make BUILD=release TARGET=${{ env.TARGET }} INCLUDES="${INCLUDES}" LDFLAGS="${LDFLAGS}"
+        else
+          make BUILD=release TARGET=${{ env.TARGET }}
+        fi
 
     - name: Build (Debug)
       run: |
-        make BUILD=debug TARGET=${{ env.TARGET }} ${{ matrix.arch && format('ARCH={0}', matrix.arch) || '' }}
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          make BUILD=debug TARGET=${{ env.TARGET }} INCLUDES="${INCLUDES}" LDFLAGS="${LDFLAGS}"
+        else
+          make BUILD=debug TARGET=${{ env.TARGET }}
+        fi
 
     - name: Run tests/checks
       run: |
-        make check BUILD=release TARGET=${{ env.TARGET }} ${{ matrix.arch && format('ARCH={0}', matrix.arch) || '' }}
+        make check BUILD=release TARGET=${{ env.TARGET }}
 
     - name: Create distribution
       run: |
-        make dist BUILD=release TARGET=${{ env.TARGET }} ${{ matrix.arch && format('ARCH={0}', matrix.arch) || '' }}
+        make dist BUILD=release TARGET=${{ env.TARGET }}
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -149,9 +150,7 @@ jobs:
           
           ### Downloads
           - **Linux x64**: `${{ env.TARGET }}_linux.zip`
-          - **Linux ARM64**: `${{ env.TARGET }}_arm_linux.zip`
           - **macOS x64**: `${{ env.TARGET }}_macos.zip`
-          - **macOS ARM64**: `${{ env.TARGET }}_arm_macos.zip`
           - **Windows x64**: `${{ env.TARGET }}_other.zip`
           
           ## Installation
