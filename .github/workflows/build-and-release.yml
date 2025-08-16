@@ -1,0 +1,194 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  TARGET: 8086emu
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+            cc: gcc
+            cxx: g++
+            deps: libncurses5-dev
+          - os: ubuntu-latest
+            target: linux-arm64
+            cc: aarch64-linux-gnu-gcc
+            cxx: aarch64-linux-gnu-g++
+            deps: libncurses5-dev gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+            arch: arm
+          - os: macos-latest
+            target: macos-x64
+            cc: clang
+            cxx: clang++
+            deps: ncurses
+          - os: macos-latest
+            target: macos-arm64
+            cc: clang
+            cxx: clang++
+            deps: ncurses
+            arch: arm
+          - os: windows-latest
+            target: windows-x64
+            cc: gcc
+            cxx: g++
+            deps: ""
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ${{ matrix.deps }}
+
+    - name: Install dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install ${{ matrix.deps }}
+
+    - name: Install dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        # Install PDCurses via vcpkg or similar
+        # For now, we'll use a pre-built version or system libraries
+        echo "Installing Windows dependencies..."
+
+    - name: Set up build environment
+      run: |
+        echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
+        echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
+
+    - name: Build (Release)
+      run: |
+        make BUILD=release TARGET=${{ env.TARGET }} ${{ matrix.arch && format('ARCH={0}', matrix.arch) || '' }}
+
+    - name: Build (Debug)
+      run: |
+        make BUILD=debug TARGET=${{ env.TARGET }} ${{ matrix.arch && format('ARCH={0}', matrix.arch) || '' }}
+
+    - name: Run tests/checks
+      run: |
+        make check BUILD=release TARGET=${{ env.TARGET }} ${{ matrix.arch && format('ARCH={0}', matrix.arch) || '' }}
+
+    - name: Create distribution
+      run: |
+        make dist BUILD=release TARGET=${{ env.TARGET }} ${{ matrix.arch && format('ARCH={0}', matrix.arch) || '' }}
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.TARGET }}-${{ matrix.target }}
+        path: |
+          build/${{ env.TARGET }}*
+          build/*.zip
+        retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts/
+
+    - name: Prepare release assets
+      run: |
+        mkdir -p release-assets/
+        find artifacts/ -name "*.zip" -exec cp {} release-assets/ \;
+        ls -la release-assets/
+
+    - name: Extract version from tag
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Create draft release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release ${{ steps.version.outputs.version }}
+        tag_name: ${{ steps.version.outputs.version }}
+        draft: true
+        prerelease: ${{ contains(steps.version.outputs.version, 'alpha') || contains(steps.version.outputs.version, 'beta') || contains(steps.version.outputs.version, 'rc') }}
+        files: |
+          release-assets/*
+        body: |
+          ## Changes in ${{ steps.version.outputs.version }}
+          
+          ### Features
+          - 
+          
+          ### Bug Fixes
+          - 
+          
+          ### Build Information
+          - Built from commit: ${{ github.sha }}
+          - Build date: ${{ github.event.head_commit.timestamp }}
+          
+          ### Downloads
+          - **Linux x64**: `${{ env.TARGET }}_linux.zip`
+          - **Linux ARM64**: `${{ env.TARGET }}_arm_linux.zip`
+          - **macOS x64**: `${{ env.TARGET }}_macos.zip`
+          - **macOS ARM64**: `${{ env.TARGET }}_arm_macos.zip`
+          - **Windows x64**: `${{ env.TARGET }}_other.zip`
+          
+          ## Installation
+          1. Download the appropriate package for your platform
+          2. Extract the archive
+          3. Run the `${{ env.TARGET }}` executable
+          
+          ## Usage
+          ```bash
+          # Run REPL mode
+          ./${{ env.TARGET }}
+          
+          # Run TUI mode with a program file
+          ./${{ env.TARGET }} --tui program.txt
+          ```
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  continuous-build:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts/
+
+    - name: Create development build summary
+      run: |
+        echo "## Development Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Build Date:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Artifacts:" >> $GITHUB_STEP_SUMMARY
+        find artifacts/ -name "*.zip" | while read file; do
+          echo "- $(basename "$file")" >> $GITHUB_STEP_SUMMARY
+        done
