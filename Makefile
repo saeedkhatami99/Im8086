@@ -1,4 +1,5 @@
-OS ?= $(shell uname)
+HOST_UNAME ?= $(shell uname -s)
+OS ?= $(HOST_UNAME)
 CXX ?= g++
 AR ?= ar
 RM ?= rm -f
@@ -10,15 +11,42 @@ WARN ?= -Wall -Wextra -Wpedantic
 DEFS ?=
 INCLUDES ?= -Iinclude
 CPPFLAGS ?= $(DEFS) $(INCLUDES)
+TARGET_OS ?=
+TARGET_ARCH ?=
+CROSS_PREFIX ?=
 
-ifeq ($(OS),Windows_NT)
-  EXECUTABLE_EXT := .exe
-  ifeq ($(SHELL),cmd)
-    RM := del /Q
-    MKDIR_P := mkdir
-  endif
+ifeq ($(TARGET_OS),)
+	ifeq ($(OS),Windows_NT)
+		TARGET_OS := windows
+	else ifeq ($(OS),Darwin)
+		TARGET_OS := macos
+	else ifeq ($(OS),Linux)
+		TARGET_OS := linux
+	else
+		TARGET_OS := other
+	endif
+endif
+
+ifeq ($(TARGET_ARCH),)
+	UNAME_M := $(shell uname -m)
+	ifeq ($(UNAME_M),x86_64)
+		TARGET_ARCH := x86_64
+	else ifeq ($(UNAME_M),amd64)
+		TARGET_ARCH := x86_64
+	else
+		TARGET_ARCH := unknown
+	endif
+endif
+
+ifeq ($(TARGET_OS),windows)
+	EXECUTABLE_EXT := .exe
 else
-  EXECUTABLE_EXT :=
+	EXECUTABLE_EXT :=
+endif
+
+ifneq ($(CROSS_PREFIX),)
+	CXX := $(CROSS_PREFIX)g++
+	AR := $(CROSS_PREFIX)ar
 endif
 
 ifeq ($(BUILD),debug)
@@ -31,12 +59,13 @@ endif
 CXXFLAGS += $(WARN) -std=$(STD) $(OPT)
 LDFLAGS ?=
 
-ifeq ($(OS),Windows_NT)
-  LDLIBS ?= -lpdcurses
-else ifeq ($(OS),Darwin)
-  LDLIBS ?= -lncurses
-else
-  LDLIBS ?= -lncurses
+LDLIBS ?=
+ifeq ($(TARGET_OS),windows)
+	LDLIBS += -lpdcurses
+else ifeq ($(TARGET_OS),macos)
+	LDLIBS += -lncurses
+else ifeq ($(TARGET_OS),linux)
+	LDLIBS += -lncurses
 endif
 
 SRC_DIR := src
@@ -45,44 +74,18 @@ OBJ_DIR := $(BUILD_DIR)/obj
 DEP_DIR := $(BUILD_DIR)/dep
 
 SRCS := $(wildcard $(SRC_DIR)/*.cpp) \
-        $(wildcard $(SRC_DIR)/instructions/*.cpp)
+			$(wildcard $(SRC_DIR)/instructions/*.cpp)
 
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 DEPS := $(patsubst $(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(SRCS))
 
 EXECUTABLE := $(BUILD_DIR)/$(TARGET)$(EXECUTABLE_EXT)
 
-ARCH_SUFFIX :=
-ifeq ($(ARCH),64)
-  CXXFLAGS += -m64
-  ARCH_SUFFIX := _64
-endif
-ifeq ($(ARCH),arm)
-  ARCH_SUFFIX := _arm
-  ifneq ($(findstring aarch64,$(CXX)),)
-  else ifneq ($(findstring arm,$(CXX)),)
-  else ifneq ($(findstring clang,$(CXX)),)
-    ifdef CXXFLAGS_ARM
-      CXXFLAGS += $(CXXFLAGS_ARM)
-    endif
-  else
-    ifeq ($(shell $(CXX) -dumpmachine 2>/dev/null | grep -E '(aarch64|arm)'),)
-      $(warning Warning: ARCH=arm specified but $(CXX) is not an ARM cross-compiler)
-    else
-      CXXFLAGS += -march=armv8-a
-    endif
-  endif
-endif
+OS_SUFFIX := _$(TARGET_OS)
+ARCH_SUFFIX := _$(TARGET_ARCH)
 
-ifeq ($(OS),Darwin)
-  OS_SUFFIX := _macos
-else ifeq ($(OS),Linux)
-  OS_SUFFIX := _linux
-else
-  OS_SUFFIX := _other
-endif
-
-DIST_ZIP := $(BUILD_DIR)/$(TARGET)$(ARCH_SUFFIX)$(OS_SUFFIX).zip
+ARTIFACT_BASENAME := $(TARGET)$(ARCH_SUFFIX)$(OS_SUFFIX)
+DIST_ZIP := $(BUILD_DIR)/$(ARTIFACT_BASENAME).zip
 
 .PHONY: all
 all: $(EXECUTABLE)
@@ -125,6 +128,9 @@ dist: $(EXECUTABLE)
 	cd $(BUILD_DIR) && zip -q $(notdir $(DIST_ZIP)) $(notdir $(EXECUTABLE))
 	@echo "Done."
 
+.PHONY: package
+package: dist
+
 distcheck: dist
 	@echo "Distribution check completed for $(DIST_ZIP)"
 	@if [ -f "$(EXECUTABLE)" ]; then \
@@ -152,11 +158,13 @@ help:
 	@echo "Variables:";
 	@echo "  BUILD=debug|release (current: $(BUILD))";
 	@echo "  TARGET (current: $(TARGET))";
-	@echo "  ARCH=64|arm (optional, current: $(ARCH))";
+	@echo "  TARGET_OS=linux|macos|windows (current: $(TARGET_OS))";
+	@echo "  TARGET_ARCH=x86_64 (current: $(TARGET_ARCH))";
+	@echo "  CROSS_PREFIX (current: $(CROSS_PREFIX))";
 	@echo "  CXX (current: $(CXX))";
 	@echo "Examples:";
 	@echo "  make BUILD=debug";
-	@echo "  make ARCH=arm";
+	@echo "  make TARGET_OS=linux";
 	@echo "  make run-tui FILE=samples/sample_01.txt";
 	@echo "  make dist";
 	@echo "  make distcheck";
