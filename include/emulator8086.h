@@ -71,6 +71,9 @@ public:
     Registers &getRegisters() { return regs; }
     std::vector<uint8_t> &getMemory() { return memory; }
     std::map<std::string, size_t> &getLabels() { return labels; }
+    
+    size_t getLabelAddress(const std::string &label);
+    bool hasLabel(const std::string &label);
 };
 
 #endif

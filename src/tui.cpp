@@ -31,8 +31,8 @@ void EmulatorTUI::drawRegisters(int y, int x, int w)
 {
     auto &r = emulator->getRegisters();
     mvprintw(y++, x, "REGISTERS");
-    mvprintw(y++, x, "AX=%04X (AH=%02X AL=%02X)  BX=%04X (BH=%02X BL=%02X)", r.AX.x, r.AX.h, r.AX.l, r.BX.x, r.BX.h, r.BX.l);
-    mvprintw(y++, x, "CX=%04X (CH=%02X CL=%02X)  DX=%04X (DH=%02X DL=%02X)", r.CX.x, r.CX.h, r.CX.l, r.DX.x, r.DX.h, r.DX.l);
+    mvprintw(y++, x, "AX=%04X (AH=%02X AL=%02X)  BX=%04X (BH=%02X BL=%02X)", r.AX.x, r.AX.bytes.h, r.AX.bytes.l, r.BX.x, r.BX.bytes.h, r.BX.bytes.l);
+    mvprintw(y++, x, "CX=%04X (CH=%02X CL=%02X)  DX=%04X (DH=%02X DL=%02X)", r.CX.x, r.CX.bytes.h, r.CX.bytes.l, r.DX.x, r.DX.bytes.h, r.DX.bytes.l);
     mvprintw(y++, x, "SI=%04X DI=%04X BP=%04X SP=%04X", r.SI, r.DI, r.BP, r.SP);
     mvprintw(y++, x, "CS=%04X DS=%04X ES=%04X SS=%04X", r.CS, r.DS, r.ES, r.SS);
     mvprintw(y++, x, "IP=%04X", r.IP);
@@ -92,8 +92,9 @@ void EmulatorTUI::drawCode(int h, int w)
 {
     int codeWidth = w / 2;
     int x = 0, y = 0;
-    mvprintw(y++, x, "CODE (F10 step, F5 run/stop, b breakpoint, c continue, q quit)");
+    mvprintw(y++, x, "CODE (F10 step, F5 run/stop, b breakpoint, c continue, l labels, q quit)");
     const auto &prog = emulator->getProgram();
+    const auto &labels = emulator->getLabels();
     size_t ip = emulator->getIP();
     int linesAvail = h - 2;
     int first = 0;
@@ -104,13 +105,24 @@ void EmulatorTUI::drawCode(int h, int w)
         size_t idx = first + i;
         bool isBP = breakpoints.count(idx);
         bool isIP = idx == ip;
+
+        std::string labelPrefix = "";
+        for (const auto &labelPair : labels)
+        {
+            if (labelPair.second == idx)
+            {
+                labelPrefix = labelPair.first + ": ";
+                break;
+            }
+        }
+
         if (isIP && isBP)
             attron(COLOR_PAIR(3));
         else if (isIP)
             attron(COLOR_PAIR(1));
         else if (isBP)
             attron(COLOR_PAIR(2));
-        mvprintw(y + i, x, "%c%04zu: %s", isBP ? '*' : ' ', idx, prog[idx].c_str());
+        mvprintw(y + i, x, "%c%04zu: %s%s", isBP ? '*' : ' ', idx, labelPrefix.c_str(), prog[idx].c_str());
         if (isIP && isBP)
             attroff(COLOR_PAIR(3));
         else if (isIP)
@@ -136,10 +148,59 @@ void EmulatorTUI::draw()
     int h, w;
     getmaxyx(stdscr, h, w);
     erase();
-    drawCode(h, w);
-    drawInspector(h, w);
+    if (showLabels)
+    {
+        drawLabels(h, w);
+    }
+    else
+    {
+        drawCode(h, w);
+        drawInspector(h, w);
+    }
     mvprintw(h - 1, 0, "Mode: %s  IP=%zu  (help keys: h)", running ? "RUN" : "PAUSE", (size_t)emulator->getIP());
     refresh();
+}
+
+void EmulatorTUI::drawLabels(int h, int w)
+{
+    int x = 0, y = 0;
+    mvprintw(y++, x, "LABELS (press any key to return)");
+    y++;
+
+    const auto &labels = emulator->getLabels();
+    if (labels.empty())
+    {
+        mvprintw(y, x, "No labels defined in current program.");
+        return;
+    }
+
+    mvprintw(y++, x, "Label Name                Address  Instruction");
+    mvprintw(y++, x, "------------------------------------------------");
+
+    std::vector<std::pair<std::string, size_t>> sortedLabels(labels.begin(), labels.end());
+    std::sort(sortedLabels.begin(), sortedLabels.end(),
+              [](const auto &a, const auto &b)
+              { return a.second < b.second; });
+
+    const auto &prog = emulator->getProgram();
+    for (const auto &labelPair : sortedLabels)
+    {
+        if (y >= h - 2)
+            break;
+
+        std::string instruction = "";
+        if (labelPair.second < prog.size())
+        {
+            instruction = prog[labelPair.second];
+            if (instruction.length() > 30)
+                instruction = instruction.substr(0, 27) + "...";
+        }
+
+        mvprintw(y++, x, "%-20s  %04zu     %s",
+                 labelPair.first.c_str(),
+                 labelPair.second,
+                 instruction.c_str());
+    }
 }
 
 void EmulatorTUI::toggleBreakpoint()
@@ -183,6 +244,10 @@ void EmulatorTUI::run()
             case 'c':
             case 'C':
                 running = true;
+                break;
+            case 'l':
+            case 'L':
+                showLabels = !showLabels;
                 break;
             case KEY_UP:
                 memWindowStart = std::max(0, memWindowStart - 16);

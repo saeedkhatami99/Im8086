@@ -5,17 +5,17 @@ MOV AL, 9h
 MOV BL, 8h
 ADD AL, BL
 AAA
-reg
+;reg
 MOV AL, 15h
 MOV BL, 27h
 SUB AL, BL
 AAS
-reg
+;reg
 MOV AL, 9h
 MOV BL, 9h
 MUL BL
 AAM
-reg
+;reg
 MOV AX, 0125h
 AAD
-reg
+;reg

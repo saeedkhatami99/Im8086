@@ -162,14 +162,14 @@ void DataTransferInstructions::lahf(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("LAHF takes no operands");
-    emulator->getRegisters().AX.h = emulator->getRegisters().FLAGS & 0xFF;
+    emulator->getRegisters().AX.bytes.h = emulator->getRegisters().FLAGS & 0xFF;
 }
 
 void DataTransferInstructions::sahf(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("SAHF takes no operands");
-    emulator->getRegisters().FLAGS = (emulator->getRegisters().FLAGS & 0xFF00) | (emulator->getRegisters().AX.h & 0xFF);
+    emulator->getRegisters().FLAGS = (emulator->getRegisters().FLAGS & 0xFF00) | (emulator->getRegisters().AX.bytes.h & 0xFF);
 }
 
 void DataTransferInstructions::pushf(const std::vector<std::string> &operands)

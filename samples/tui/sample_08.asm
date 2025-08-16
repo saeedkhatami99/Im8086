@@ -4,13 +4,13 @@
 MOV AX, 1111h
 MOV BX, 2222h
 XCHG AX, BX
-reg
+;reg
 MOV CX, 3333h
 XCHG CX, AX
-reg
+;reg
 MOV SI, 1000h
 MOV DI, 2000h
 LEA BX, [SI+DI+10h]
-reg
+;reg
 LEA DX, [SI+100h]
-reg
+;reg

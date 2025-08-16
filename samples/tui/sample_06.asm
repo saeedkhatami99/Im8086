@@ -3,17 +3,17 @@
 
 MOV AX, 1000h
 SHL AX, 1
-reg
+;reg
 MOV BX, 8000h
 SHR BX, 2
-reg
+;reg
 MOV CX, 8001h
 ROL CX, 1
-reg
+;reg
 MOV DX, 8001h
 ROR DX, 1
-reg
+;reg
 STC
 MOV SI, 4000h
 RCL SI, 1
-reg
+;reg

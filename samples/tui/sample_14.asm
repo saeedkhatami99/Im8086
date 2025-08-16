@@ -4,12 +4,12 @@
 MOV AX, 100h
 ADD AX, 200h
 LAHF
-reg
+;reg
 MOV AH, 85h
 SAHF
-reg
+;reg
 PUSHF
-stack
+;stack
 MOV AX, 0h
 POPF
-reg
+;reg

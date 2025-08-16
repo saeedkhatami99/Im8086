@@ -308,21 +308,21 @@ uint8_t &Emulator8086::getRegister8(const std::string &reg)
     std::string upperReg = reg;
     std::transform(upperReg.begin(), upperReg.end(), upperReg.begin(), ::toupper);
     if (upperReg == "AL")
-        return regs.AX.l;
+        return regs.AX.bytes.l;
     if (upperReg == "AH")
-        return regs.AX.h;
+        return regs.AX.bytes.h;
     if (upperReg == "BL")
-        return regs.BX.l;
+        return regs.BX.bytes.l;
     if (upperReg == "BH")
-        return regs.BX.h;
+        return regs.BX.bytes.h;
     if (upperReg == "CL")
-        return regs.CX.l;
+        return regs.CX.bytes.l;
     if (upperReg == "CH")
-        return regs.CX.h;
+        return regs.CX.bytes.h;
     if (upperReg == "DL")
-        return regs.DX.l;
+        return regs.DX.bytes.l;
     if (upperReg == "DH")
-        return regs.DX.h;
+        return regs.DX.bytes.h;
     throw std::runtime_error("Invalid 8-bit register: " + reg);
 }
 
@@ -394,9 +394,20 @@ MemoryOperand Emulator8086::parseMemoryOperand(const std::string &operand)
         else
         {
             result.hasDisplacement = true;
-            result.displacement = std::stoi(part, nullptr, 16);
-            if (negative)
-                result.displacement = -result.displacement;
+            try
+            {
+                result.displacement = std::stoi(part, nullptr, 16);
+                if (negative)
+                    result.displacement = -result.displacement;
+            }
+            catch (const std::invalid_argument &e)
+            {
+                throw std::runtime_error("Invalid displacement value: " + part);
+            }
+            catch (const std::out_of_range &e)
+            {
+                throw std::runtime_error("Displacement value out of range: " + part);
+            }
         }
     }
     return result;
@@ -416,14 +427,14 @@ uint16_t Emulator8086::calculateEffectiveAddress(const MemoryOperand &memOp)
 
 uint16_t Emulator8086::readMemoryWord(uint16_t address)
 {
-    if (address + 1 >= memory.size())
+    if (static_cast<size_t>(address) + 1 >= memory.size())
         throw std::out_of_range("Memory address out of range");
     return (memory[address + 1] << 8) | memory[address];
 }
 
 void Emulator8086::writeMemoryWord(uint16_t address, uint16_t value)
 {
-    if (address + 1 >= memory.size())
+    if (static_cast<size_t>(address) + 1 >= memory.size())
         throw std::out_of_range("Memory address out of range");
     memory[address] = value & 0xFF;
     memory[address + 1] = (value >> 8) & 0xFF;
@@ -431,14 +442,14 @@ void Emulator8086::writeMemoryWord(uint16_t address, uint16_t value)
 
 uint8_t Emulator8086::readMemoryByte(uint16_t address)
 {
-    if (address >= memory.size())
+    if (static_cast<size_t>(address) >= memory.size())
         throw std::out_of_range("Memory address out of range");
     return memory[address];
 }
 
 void Emulator8086::writeMemoryByte(uint16_t address, uint8_t value)
 {
-    if (address >= memory.size())
+    if (static_cast<size_t>(address) >= memory.size())
         throw std::out_of_range("Memory address out of range");
     memory[address] = value;
 }
@@ -458,7 +469,18 @@ uint16_t Emulator8086::getValue(const std::string &operand)
     }
     else if (operand[0] >= '0' && operand[0] <= '9')
     {
-        return std::stoi(operand);
+        try
+        {
+            return std::stoi(operand);
+        }
+        catch (const std::invalid_argument &e)
+        {
+            throw std::runtime_error("Invalid immediate value: " + operand);
+        }
+        catch (const std::out_of_range &e)
+        {
+            throw std::runtime_error("Immediate value out of range: " + operand);
+        }
     }
     else if (is8BitRegister(operand))
     {
@@ -485,7 +507,18 @@ uint8_t Emulator8086::getValue8(const std::string &operand)
     }
     else if (operand[0] >= '0' && operand[0] <= '9')
     {
-        return std::stoi(operand) & 0xFF;
+        try
+        {
+            return std::stoi(operand) & 0xFF;
+        }
+        catch (const std::invalid_argument &e)
+        {
+            throw std::runtime_error("Invalid immediate value: " + operand);
+        }
+        catch (const std::out_of_range &e)
+        {
+            throw std::runtime_error("Immediate value out of range: " + operand);
+        }
     }
     else if (is8BitRegister(operand))
     {
@@ -617,14 +650,14 @@ void Emulator8086::reset()
 void Emulator8086::displayRegisters()
 {
     std::cout << std::hex << std::uppercase << std::setfill('0')
-              << "AX=" << std::setw(4) << regs.AX.x << " (AH=" << std::setw(2) << static_cast<uint16_t>(regs.AX.h)
-              << ", AL=" << std::setw(2) << static_cast<uint16_t>(regs.AX.l) << ")\n"
-              << "BX=" << std::setw(4) << regs.BX.x << " (BH=" << std::setw(2) << static_cast<uint16_t>(regs.BX.h)
-              << ", BL=" << std::setw(2) << static_cast<uint16_t>(regs.BX.l) << ")\n"
-              << "CX=" << std::setw(4) << regs.CX.x << " (CH=" << std::setw(2) << static_cast<uint16_t>(regs.CX.h)
-              << ", CL=" << std::setw(2) << static_cast<uint16_t>(regs.CX.l) << ")\n"
-              << "DX=" << std::setw(4) << regs.DX.x << " (DH=" << std::setw(2) << static_cast<uint16_t>(regs.DX.h)
-              << ", DL=" << std::setw(2) << static_cast<uint16_t>(regs.DX.l) << ")\n"
+              << "AX=" << std::setw(4) << regs.AX.x << " (AH=" << std::setw(2) << static_cast<uint16_t>(regs.AX.bytes.h)
+              << ", AL=" << std::setw(2) << static_cast<uint16_t>(regs.AX.bytes.l) << ")\n"
+              << "BX=" << std::setw(4) << regs.BX.x << " (BH=" << std::setw(2) << static_cast<uint16_t>(regs.BX.bytes.h)
+              << ", BL=" << std::setw(2) << static_cast<uint16_t>(regs.BX.bytes.l) << ")\n"
+              << "CX=" << std::setw(4) << regs.CX.x << " (CH=" << std::setw(2) << static_cast<uint16_t>(regs.CX.bytes.h)
+              << ", CL=" << std::setw(2) << static_cast<uint16_t>(regs.CX.bytes.l) << ")\n"
+              << "DX=" << std::setw(4) << regs.DX.x << " (DH=" << std::setw(2) << static_cast<uint16_t>(regs.DX.bytes.h)
+              << ", DL=" << std::setw(2) << static_cast<uint16_t>(regs.DX.bytes.l) << ")\n"
               << "SI=" << std::setw(4) << regs.SI << "  "
               << "DI=" << std::setw(4) << regs.DI << "  "
               << "BP=" << std::setw(4) << regs.BP << "  "
@@ -809,4 +842,27 @@ void Emulator8086::displayHelp()
     std::cout << "  :3xit              - Exit emulator\n";
     std::cout << "----------------------------------------\n";
     std::cout << "Notes: Use 'h' suffix for hex (e.g., 10h), memory as [BX+SI+offset]\n";
+}
+
+size_t Emulator8086::getLabelAddress(const std::string &label)
+{
+    std::string upperLabel = label;
+    std::transform(upperLabel.begin(), upperLabel.end(), upperLabel.begin(), ::toupper);
+
+    auto it = labels.find(upperLabel);
+    if (it != labels.end())
+    {
+        return it->second;
+    }
+    else
+    {
+        throw std::runtime_error("Unknown label: " + label);
+    }
+}
+
+bool Emulator8086::hasLabel(const std::string &label)
+{
+    std::string upperLabel = label;
+    std::transform(upperLabel.begin(), upperLabel.end(), upperLabel.begin(), ::toupper);
+    return labels.find(upperLabel) != labels.end();
 }

@@ -5,14 +5,14 @@ MOV AL, 29h
 MOV BL, 35h
 ADD AL, BL
 DAA
-reg
+;reg
 MOV AL, 83h
 MOV BL, 29h
 SUB AL, BL
 DAS
-reg
+;reg
 MOV AL, 99h
 MOV BL, 1h
 ADD AL, BL
 DAA
-reg
+;reg

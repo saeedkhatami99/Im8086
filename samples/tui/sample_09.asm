@@ -2,16 +2,16 @@
 ; Test flag manipulation instructions
 
 CLC
-reg
+;reg
 STC
-reg
+;reg
 CMC
-reg
+;reg
 CLD
-reg
+;reg
 STD
-reg
+;reg
 CLI
-reg
+;reg
 STI
-reg
+;reg

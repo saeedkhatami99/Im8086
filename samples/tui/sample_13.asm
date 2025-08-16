@@ -3,13 +3,13 @@
 
 MOV AL, 80h
 CBW
-reg
+;reg
 MOV AL, 7Fh
 CBW
-reg
+;reg
 MOV AX, 8000h
 CWD
-reg
+;reg
 MOV AX, 7FFFh
 CWD
-reg
+;reg
