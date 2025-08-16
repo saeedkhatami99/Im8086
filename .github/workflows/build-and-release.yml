@@ -51,6 +51,7 @@ jobs:
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
+      shell: bash
       run: |
         # Install PDCurses
         vcpkg install pdcurses:x64-windows
@@ -58,6 +59,7 @@ jobs:
         echo "CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
 
     - name: Set up build environment
+      shell: bash
       run: |
         echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
         echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
@@ -67,6 +69,7 @@ jobs:
         fi
 
     - name: Build (Release)
+      shell: bash
       run: |
         if [[ "${{ runner.os }}" == "Windows" ]]; then
           make BUILD=release TARGET=${{ env.TARGET }} INCLUDES="${INCLUDES}" LDFLAGS="${LDFLAGS}"
@@ -75,6 +78,7 @@ jobs:
         fi
 
     - name: Build (Debug)
+      shell: bash
       run: |
         if [[ "${{ runner.os }}" == "Windows" ]]; then
           make BUILD=debug TARGET=${{ env.TARGET }} INCLUDES="${INCLUDES}" LDFLAGS="${LDFLAGS}"
@@ -83,10 +87,12 @@ jobs:
         fi
 
     - name: Run tests/checks
+      shell: bash
       run: |
         make check BUILD=release TARGET=${{ env.TARGET }}
 
     - name: Create distribution
+      shell: bash
       run: |
         make dist BUILD=release TARGET=${{ env.TARGET }}
 
