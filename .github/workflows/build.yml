@@ -1,0 +1,110 @@
+name: build-matrix
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: Linux ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps (host)
+        if: matrix.arch == 'x86_64'
+        run: sudo apt-get update && sudo apt-get install -y build-essential libncurses-dev zip
+      - name: Build (x86_64)
+        if: matrix.arch == 'x86_64'
+        run: |
+          make TARGET_OS=linux TARGET_ARCH=x86_64
+          make dist
+      - name: ARM64 build via run-on-arch
+        if: matrix.arch == 'arm64'
+        uses: uraimo/run-on-arch-action@v2
+        with:
+          arch: aarch64
+          distro: ubuntu24.04
+          githubToken: ${{ github.token }}
+          install: |
+            apt-get update
+            apt-get install -y build-essential libncurses-dev zip make g++
+          run: |
+            make TARGET_OS=linux TARGET_ARCH=arm64
+            make dist
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: build/*.zip
+
+  macos:
+    name: macOS ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x86_64]
+    runs-on: ${{ matrix.arch == 'x86_64' && 'macos-13' || 'macos-14' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          make TARGET_OS=macos TARGET_ARCH=${TARGET_ARCH}
+          make dist TARGET_OS=macos TARGET_ARCH=${TARGET_ARCH}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: build/*.zip
+
+  windows:
+    name: Windows ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, arm64]
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            make
+            zip
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pdcurses
+            mingw-w64-clang-aarch64-gcc
+            mingw-w64-clang-aarch64-pdcurses
+      - name: Select toolchain
+        id: tc
+        run: |
+          if [ "${{ matrix.arch }}" = "x86_64" ]; then
+            echo "CXX=x86_64-w64-mingw32-g++" >> $GITHUB_ENV
+            echo "TARGET_ARCH=x86_64" >> $GITHUB_ENV
+          else
+            # aarch64 (ARM64) toolchain name under MSYS2 clang environment
+            echo "CXX=clang++" >> $GITHUB_ENV
+            echo "TARGET_ARCH=arm64" >> $GITHUB_ENV
+            echo "EXTRA_FLAGS=-target aarch64-w64-mingw32" >> $GITHUB_ENV
+          fi
+      - name: Build
+        run: |
+          make TARGET_OS=windows TARGET_ARCH=${TARGET_ARCH} CXX="${CXX} ${EXTRA_FLAGS}"
+          make dist TARGET_OS=windows TARGET_ARCH=${TARGET_ARCH} CXX="${CXX} ${EXTRA_FLAGS}"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}
+          path: build/*.zip
