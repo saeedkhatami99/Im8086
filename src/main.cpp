@@ -5,10 +5,19 @@
 #include <vector>
 #include "emulator8086.h"
 #include "tui.h"
+#include "ide_tui.h"
 
 int main(int argc, char **argv)
 {
     Emulator8086 emu;
+
+    if (argc >= 2 && std::string(argv[1]) == "--ide")
+    {
+        EmulatorIDETUI ide(&emu);
+        ide.run();
+        return 0;
+    }
+
     if (argc >= 3 && std::string(argv[1]) == "--tui")
     {
         std::ifstream fin(argv[2]);
@@ -24,6 +33,22 @@ int main(int argc, char **argv)
         emu.loadProgram(lines);
         EmulatorTUI tui(&emu);
         tui.run();
+        return 0;
+    }
+
+    if (argc > 1)
+    {
+        std::cout << "8086 Emulator Usage:\n";
+        std::cout << "  " << argv[0] << "                    - Interactive command line mode\n";
+        std::cout << "  " << argv[0] << " --ide             - IDE mode with integrated editor and debugger\n";
+        std::cout << "  " << argv[0] << " --tui <file>      - TUI debugger mode with assembly file\n";
+        std::cout << "\nIDE Mode Features:\n";
+        std::cout << "  - Integrated assembly code editor\n";
+        std::cout << "  - Real-time compilation and debugging\n";
+        std::cout << "  - Step-by-step execution\n";
+        std::cout << "  - Breakpoint support\n";
+        std::cout << "  - Register and memory inspection\n";
+        std::cout << "  - Save/Load programs\n";
         return 0;
     }
 
@@ -43,9 +68,9 @@ int main(int argc, char **argv)
         std::cout << "> ";
         std::getline(std::cin, input);
 
-        if (input == ":3xit" || 
-            input == "exit" || 
-            input == "quit" || 
+        if (input == ":3xit" ||
+            input == "exit" ||
+            input == "quit" ||
             input == "3xit")
             break;
         if (input == "?")

@@ -111,6 +111,9 @@ $(DEP_DIR):
 run: $(EXECUTABLE)
 	$(EXECUTABLE)
 
+run-ide: $(EXECUTABLE)
+	$(EXECUTABLE) --ide
+
 run-tui: $(EXECUTABLE)
 ifeq ($(FILE),)
 	@echo "Specify FILE=<program file> e.g. make run-tui FILE=samples/sample_01.txt" && exit 1
@@ -149,6 +152,7 @@ help:
 	@echo "Targets:";
 	@echo "  all (default)   Build executable";
 	@echo "  run              Run REPL";
+	@echo "  run-ide          Run IDE mode";
 	@echo "  run-tui FILE=..  Run TUI with program file";
 	@echo "  rebuild          Clean then build";
 	@echo "  clean            Remove build artifacts";
@@ -165,6 +169,7 @@ help:
 	@echo "Examples:";
 	@echo "  make BUILD=debug";
 	@echo "  make TARGET_OS=linux";
+	@echo "  make run-ide";
 	@echo "  make run-tui FILE=samples/sample_01.txt";
 	@echo "  make dist";
 	@echo "  make distcheck";
