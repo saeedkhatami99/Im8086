@@ -38,6 +38,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Setup MSYS2 (Windows)
+      if: runner.os == 'Windows'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-make
+          mingw-w64-x86_64-pdcurses
+          make
+
     - name: Install dependencies (Ubuntu)
       if: runner.os == 'Linux'
       run: |
@@ -51,47 +63,61 @@ jobs:
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
-      shell: bash
+      shell: msys2 {0}
       run: |
-        # Install PDCurses
-        vcpkg install pdcurses:x64-windows
-        echo "VCPKG_ROOT=C:/vcpkg" >> $GITHUB_ENV
-        echo "CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
+        # PDCurses should already be installed via MSYS2 setup
+        echo "Windows dependencies installed via MSYS2"
 
     - name: Set up build environment
       shell: bash
       run: |
         echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
         echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
-        if [[ "${{ runner.os }}" == "Windows" ]]; then
-          echo "INCLUDES=-I$VCPKG_ROOT/installed/x64-windows/include" >> $GITHUB_ENV
-          echo "LDFLAGS=-L$VCPKG_ROOT/installed/x64-windows/lib" >> $GITHUB_ENV
-        fi
 
-    - name: Build (Release)
+    - name: Build (Release) - Windows
+      if: runner.os == 'Windows'
+      shell: msys2 {0}
+      run: |
+        make BUILD=release TARGET=${{ env.TARGET }}
+
+    - name: Build (Release) - Unix
+      if: runner.os != 'Windows'
       shell: bash
       run: |
-        if [[ "${{ runner.os }}" == "Windows" ]]; then
-          make BUILD=release TARGET=${{ env.TARGET }} INCLUDES="${INCLUDES}" LDFLAGS="${LDFLAGS}"
-        else
-          make BUILD=release TARGET=${{ env.TARGET }}
-        fi
+        make BUILD=release TARGET=${{ env.TARGET }}
 
-    - name: Build (Debug)
+    - name: Build (Debug) - Windows
+      if: runner.os == 'Windows'
+      shell: msys2 {0}
+      run: |
+        make BUILD=debug TARGET=${{ env.TARGET }}
+
+    - name: Build (Debug) - Unix
+      if: runner.os != 'Windows'
       shell: bash
       run: |
-        if [[ "${{ runner.os }}" == "Windows" ]]; then
-          make BUILD=debug TARGET=${{ env.TARGET }} INCLUDES="${INCLUDES}" LDFLAGS="${LDFLAGS}"
-        else
-          make BUILD=debug TARGET=${{ env.TARGET }}
-        fi
+        make BUILD=debug TARGET=${{ env.TARGET }}
 
-    - name: Run tests/checks
+    - name: Run tests/checks - Windows
+      if: runner.os == 'Windows'
+      shell: msys2 {0}
+      run: |
+        make check BUILD=release TARGET=${{ env.TARGET }}
+
+    - name: Run tests/checks - Unix
+      if: runner.os != 'Windows'
       shell: bash
       run: |
         make check BUILD=release TARGET=${{ env.TARGET }}
 
-    - name: Create distribution
+    - name: Create distribution - Windows
+      if: runner.os == 'Windows'
+      shell: msys2 {0}
+      run: |
+        make dist BUILD=release TARGET=${{ env.TARGET }}
+
+    - name: Create distribution - Unix
+      if: runner.os != 'Windows'
       shell: bash
       run: |
         make dist BUILD=release TARGET=${{ env.TARGET }}
