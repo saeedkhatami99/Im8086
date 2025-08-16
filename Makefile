@@ -33,10 +33,6 @@ ifeq ($(TARGET_ARCH),)
 		TARGET_ARCH := x86_64
 	else ifeq ($(UNAME_M),amd64)
 		TARGET_ARCH := x86_64
-	else ifeq ($(UNAME_M),aarch64)
-		TARGET_ARCH := arm64
-	else ifneq (,$(findstring arm,$(UNAME_M)))
-		TARGET_ARCH := arm
 	else
 		TARGET_ARCH := unknown
 	endif
@@ -90,19 +86,6 @@ ARCH_SUFFIX := _$(TARGET_ARCH)
 
 ARTIFACT_BASENAME := $(TARGET)$(ARCH_SUFFIX)$(OS_SUFFIX)
 DIST_ZIP := $(BUILD_DIR)/$(ARTIFACT_BASENAME).zip
-
-ifeq ($(TARGET_ARCH),x86_64)
-	# no change (let compiler decide)
-else ifeq ($(TARGET_ARCH),arm64)
-	# aarch64
-	ifneq (,$(findstring clang,$(notdir $(CXX))))
-		CXXFLAGS += -target aarch64-$(TARGET_OS)
-	endif
-else ifeq ($(TARGET_ARCH),arm)
-	ifneq (,$(findstring clang,$(notdir $(CXX))))
-		CXXFLAGS += -target armv7-$(TARGET_OS)
-	endif
-endif
 
 .PHONY: all
 all: $(EXECUTABLE)
@@ -176,12 +159,12 @@ help:
 	@echo "  BUILD=debug|release (current: $(BUILD))";
 	@echo "  TARGET (current: $(TARGET))";
 	@echo "  TARGET_OS=linux|macos|windows (current: $(TARGET_OS))";
-	@echo "  TARGET_ARCH=x86_64|arm64|arm (current: $(TARGET_ARCH))";
+	@echo "  TARGET_ARCH=x86_64 (current: $(TARGET_ARCH))";
 	@echo "  CROSS_PREFIX (current: $(CROSS_PREFIX))";
 	@echo "  CXX (current: $(CXX))";
 	@echo "Examples:";
 	@echo "  make BUILD=debug";
-	@echo "  make TARGET_OS=linux TARGET_ARCH=arm64";
+	@echo "  make TARGET_OS=linux";
 	@echo "  make run-tui FILE=samples/sample_01.txt";
 	@echo "  make dist";
 	@echo "  make distcheck";
