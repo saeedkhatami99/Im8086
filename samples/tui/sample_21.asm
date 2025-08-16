@@ -3,18 +3,18 @@
 
 MOV AX, 1234h
 SHL AX, 4h
-reg
+;reg
 MOV BX, 8765h
 SHR BX, 3h
-reg
+;reg
 STC
 MOV CX, 8000h
 RCL CX, 2h
-reg
+;reg
 CLC
 MOV DX, 0001h
 RCR DX, 3h
-reg
+;reg
 MOV SI, 0FFh
 SAR SI, 2h
-reg
+;reg

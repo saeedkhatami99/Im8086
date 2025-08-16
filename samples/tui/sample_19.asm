@@ -10,10 +10,10 @@ MOV AL, 2h
 MOV byte ptr [BX+2], 30h
 MOV AL, 3h
 MOV byte ptr [BX+3], 40h
-mem 2000 8
+;mem 2000 8
 MOV AL, 2h
 XLAT
-reg
+;reg
 MOV AL, 1h
 XLATB
-reg
+;reg

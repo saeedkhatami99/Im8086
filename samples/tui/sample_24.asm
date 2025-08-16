@@ -4,12 +4,12 @@
 MOV AX, 2000h
 MOV [2000h], 1234h
 MOV [2002h], 5678h
-mem 2000 8
+;mem 2000 8
 LDS SI, [2000h]
-reg
+;reg
 MOV AX, 3000h
 MOV [3000h], 0ABCDh
 MOV [3002h], 0EF00h
-mem 3000 8
+;mem 3000 8
 LES DI, [3000h]
-reg
+;reg

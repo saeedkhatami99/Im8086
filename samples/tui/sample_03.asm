@@ -7,9 +7,9 @@ MOV CX, 3333h
 PUSH AX
 PUSH BX
 PUSH CX
-reg
-stack
+;reg
+;stack
 POP DX
 POP SI
 POP DI
-reg
+;reg

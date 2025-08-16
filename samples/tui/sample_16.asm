@@ -7,10 +7,10 @@ MOV CX, 5h
 MOV AL, 0AAh
 CLD
 REP STOSB
-mem 2000 10
+;mem 2000 10
 MOV SI, 2000h
 MOV DI, 3000h
 MOV CX, 5h
 REP MOVSB
-mem 3000 10
-reg
+;mem 3000 10
+;reg

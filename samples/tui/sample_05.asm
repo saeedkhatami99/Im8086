@@ -4,12 +4,12 @@
 MOV AX, 100h
 MOV BX, 100h
 CMP AX, BX
-reg
+;reg
 MOV CX, 50h
 CMP CX, 100h
-reg
+;reg
 MOV DX, 0Fh
 TEST DX, 0Fh
-reg
+;reg
 TEST DX, 0F0h
-reg
+;reg

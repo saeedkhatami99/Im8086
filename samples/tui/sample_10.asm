@@ -5,13 +5,13 @@ MOV SI, 1000h
 MOV DI, 2000h
 MOV AL, 55h
 STOSB
-reg
+;reg
 MOV AX, 1234h
 STOSW
-reg
+;reg
 MOV SI, 2000h
 LODSB
-reg
+;reg
 MOV SI, 2001h
 LODSW
-reg
+;reg

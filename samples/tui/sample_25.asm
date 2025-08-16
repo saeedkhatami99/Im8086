@@ -29,8 +29,8 @@ REP STOSB
 ; Restore and display
 POPF
 POPA
-reg
-mem 1200 20
+;reg
+;mem 1200 20
 
 ; Final operations
 XOR AX, AX

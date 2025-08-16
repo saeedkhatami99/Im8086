@@ -5,4 +5,4 @@ MOV AX, 1234h
 MOV BX, 5678h
 MOV CX, AX
 MOV DX, BX
-reg
+;reg

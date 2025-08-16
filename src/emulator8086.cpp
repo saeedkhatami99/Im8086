@@ -394,13 +394,18 @@ MemoryOperand Emulator8086::parseMemoryOperand(const std::string &operand)
         else
         {
             result.hasDisplacement = true;
-            try {
+            try
+            {
                 result.displacement = std::stoi(part, nullptr, 16);
                 if (negative)
                     result.displacement = -result.displacement;
-            } catch (const std::invalid_argument& e) {
+            }
+            catch (const std::invalid_argument &e)
+            {
                 throw std::runtime_error("Invalid displacement value: " + part);
-            } catch (const std::out_of_range& e) {
+            }
+            catch (const std::out_of_range &e)
+            {
                 throw std::runtime_error("Displacement value out of range: " + part);
             }
         }
@@ -464,13 +469,18 @@ uint16_t Emulator8086::getValue(const std::string &operand)
     }
     else if (operand[0] >= '0' && operand[0] <= '9')
     {
-        try {
-        return std::stoi(operand);
-    } catch (const std::invalid_argument& e) {
-        throw std::runtime_error("Invalid immediate value: " + operand);
-    } catch (const std::out_of_range& e) {
-        throw std::runtime_error("Immediate value out of range: " + operand);
-    }
+        try
+        {
+            return std::stoi(operand);
+        }
+        catch (const std::invalid_argument &e)
+        {
+            throw std::runtime_error("Invalid immediate value: " + operand);
+        }
+        catch (const std::out_of_range &e)
+        {
+            throw std::runtime_error("Immediate value out of range: " + operand);
+        }
     }
     else if (is8BitRegister(operand))
     {
@@ -497,13 +507,18 @@ uint8_t Emulator8086::getValue8(const std::string &operand)
     }
     else if (operand[0] >= '0' && operand[0] <= '9')
     {
-        try {
-        return std::stoi(operand) & 0xFF;
-    } catch (const std::invalid_argument& e) {
-        throw std::runtime_error("Invalid immediate value: " + operand);
-    } catch (const std::out_of_range& e) {
-        throw std::runtime_error("Immediate value out of range: " + operand);
-    }
+        try
+        {
+            return std::stoi(operand) & 0xFF;
+        }
+        catch (const std::invalid_argument &e)
+        {
+            throw std::runtime_error("Invalid immediate value: " + operand);
+        }
+        catch (const std::out_of_range &e)
+        {
+            throw std::runtime_error("Immediate value out of range: " + operand);
+        }
     }
     else if (is8BitRegister(operand))
     {
@@ -827,4 +842,27 @@ void Emulator8086::displayHelp()
     std::cout << "  :3xit              - Exit emulator\n";
     std::cout << "----------------------------------------\n";
     std::cout << "Notes: Use 'h' suffix for hex (e.g., 10h), memory as [BX+SI+offset]\n";
+}
+
+size_t Emulator8086::getLabelAddress(const std::string &label)
+{
+    std::string upperLabel = label;
+    std::transform(upperLabel.begin(), upperLabel.end(), upperLabel.begin(), ::toupper);
+
+    auto it = labels.find(upperLabel);
+    if (it != labels.end())
+    {
+        return it->second;
+    }
+    else
+    {
+        throw std::runtime_error("Unknown label: " + label);
+    }
+}
+
+bool Emulator8086::hasLabel(const std::string &label)
+{
+    std::string upperLabel = label;
+    std::transform(upperLabel.begin(), upperLabel.end(), upperLabel.begin(), ::toupper);
+    return labels.find(upperLabel) != labels.end();
 }

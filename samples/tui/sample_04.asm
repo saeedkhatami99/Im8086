@@ -4,12 +4,12 @@
 MOV AX, 0FFh
 MOV BX, 55h
 AND AX, BX
-reg
+;reg
 MOV CX, 33h
 MOV DX, CCh
 OR CX, DX
-reg
+;reg
 MOV SI, 0F0h
 XOR SI, 0Fh
 NOT SI
-reg
+;reg

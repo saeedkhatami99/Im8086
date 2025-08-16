@@ -7,4 +7,4 @@ ADD AX, BX
 SUB AX, 5h
 INC AX
 DEC BX
-reg
+;reg
