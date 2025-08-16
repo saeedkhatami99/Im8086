@@ -10,7 +10,7 @@ union Register16
     {
         uint8_t l;
         uint8_t h;
-    };
+    } bytes;
 };
 
 class Registers

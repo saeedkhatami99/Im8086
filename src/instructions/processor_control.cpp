@@ -102,7 +102,14 @@ void ProcessorControlInstructions::int_op(const std::vector<std::string> &operan
 
     try
     {
-        int intNum = std::stoi(operands[0], nullptr, 16);
+        int intNum;
+        try {
+            intNum = std::stoi(operands[0], nullptr, 16);
+        } catch (const std::invalid_argument& e) {
+            throw std::runtime_error("Invalid interrupt number: " + operands[0]);
+        } catch (const std::out_of_range& e) {
+            throw std::runtime_error("Interrupt number out of range: " + operands[0]);
+        }
         switch (intNum)
         {
         case 0x10:
@@ -172,7 +179,14 @@ void ProcessorControlInstructions::in_op(const std::vector<std::string> &operand
 
     try
     {
-        uint16_t port = std::stoi(operands[1], nullptr, 16);
+        uint16_t port;
+        try {
+            port = std::stoi(operands[1], nullptr, 16);
+        } catch (const std::invalid_argument& e) {
+            throw std::runtime_error("Invalid port number: " + operands[1]);
+        } catch (const std::out_of_range& e) {
+            throw std::runtime_error("Port number out of range: " + operands[1]);
+        }
 
         uint16_t value = 0;
         switch (port)
@@ -213,7 +227,14 @@ void ProcessorControlInstructions::out(const std::vector<std::string> &operands)
 
     try
     {
-        uint16_t port = std::stoi(operands[0], nullptr, 16);
+        uint16_t port;
+        try {
+            port = std::stoi(operands[0], nullptr, 16);
+        } catch (const std::invalid_argument& e) {
+            throw std::runtime_error("Invalid port number: " + operands[0]);
+        } catch (const std::out_of_range& e) {
+            throw std::runtime_error("Port number out of range: " + operands[0]);
+        }
         uint16_t value = emulator->getValue(operands[1]);
 
         switch (port)

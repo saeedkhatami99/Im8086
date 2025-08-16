@@ -31,8 +31,8 @@ void EmulatorTUI::drawRegisters(int y, int x, int w)
 {
     auto &r = emulator->getRegisters();
     mvprintw(y++, x, "REGISTERS");
-    mvprintw(y++, x, "AX=%04X (AH=%02X AL=%02X)  BX=%04X (BH=%02X BL=%02X)", r.AX.x, r.AX.h, r.AX.l, r.BX.x, r.BX.h, r.BX.l);
-    mvprintw(y++, x, "CX=%04X (CH=%02X CL=%02X)  DX=%04X (DH=%02X DL=%02X)", r.CX.x, r.CX.h, r.CX.l, r.DX.x, r.DX.h, r.DX.l);
+    mvprintw(y++, x, "AX=%04X (AH=%02X AL=%02X)  BX=%04X (BH=%02X BL=%02X)", r.AX.x, r.AX.bytes.h, r.AX.bytes.l, r.BX.x, r.BX.bytes.h, r.BX.bytes.l);
+    mvprintw(y++, x, "CX=%04X (CH=%02X CL=%02X)  DX=%04X (DH=%02X DL=%02X)", r.CX.x, r.CX.bytes.h, r.CX.bytes.l, r.DX.x, r.DX.bytes.h, r.DX.bytes.l);
     mvprintw(y++, x, "SI=%04X DI=%04X BP=%04X SP=%04X", r.SI, r.DI, r.BP, r.SP);
     mvprintw(y++, x, "CS=%04X DS=%04X ES=%04X SS=%04X", r.CS, r.DS, r.ES, r.SS);
     mvprintw(y++, x, "IP=%04X", r.IP);

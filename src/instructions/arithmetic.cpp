@@ -103,34 +103,34 @@ void ArithmeticInstructions::aaa(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("AAA takes no operands");
-    if ((emulator->getRegisters().AX.l & 0x0F) > 9 || (emulator->getRegisters().FLAGS & Registers::AF))
+    if ((emulator->getRegisters().AX.bytes.l & 0x0F) > 9 || (emulator->getRegisters().FLAGS & Registers::AF))
     {
-        emulator->getRegisters().AX.l += 6;
-        emulator->getRegisters().AX.h += 1;
+        emulator->getRegisters().AX.bytes.l += 6;
+        emulator->getRegisters().AX.bytes.h += 1;
         emulator->getRegisters().FLAGS |= (Registers::AF | Registers::CF);
     }
     else
     {
         emulator->getRegisters().FLAGS &= ~(Registers::AF | Registers::CF);
     }
-    emulator->getRegisters().AX.l &= 0x0F;
+    emulator->getRegisters().AX.bytes.l &= 0x0F;
 }
 
 void ArithmeticInstructions::daa(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("DAA takes no operands");
-    uint8_t oldAL = emulator->getRegisters().AX.l;
+    uint8_t oldAL = emulator->getRegisters().AX.bytes.l;
     bool oldCF = emulator->getRegisters().FLAGS & Registers::CF;
     emulator->getRegisters().FLAGS &= ~Registers::CF;
-    if ((emulator->getRegisters().AX.l & 0x0F) > 9 || (emulator->getRegisters().FLAGS & Registers::AF))
+    if ((emulator->getRegisters().AX.bytes.l & 0x0F) > 9 || (emulator->getRegisters().FLAGS & Registers::AF))
     {
-        emulator->getRegisters().AX.l += 6;
+        emulator->getRegisters().AX.bytes.l += 6;
         emulator->getRegisters().FLAGS |= Registers::AF;
     }
     if ((oldAL > 0x99) || oldCF)
     {
-        emulator->getRegisters().AX.l += 0x60;
+        emulator->getRegisters().AX.bytes.l += 0x60;
         emulator->getRegisters().FLAGS |= Registers::CF;
     }
 }
@@ -263,34 +263,34 @@ void ArithmeticInstructions::aas(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("AAS takes no operands");
-    if ((emulator->getRegisters().AX.l & 0x0F) > 9 || (emulator->getRegisters().FLAGS & Registers::AF))
+    if ((emulator->getRegisters().AX.bytes.l & 0x0F) > 9 || (emulator->getRegisters().FLAGS & Registers::AF))
     {
-        emulator->getRegisters().AX.l -= 6;
-        emulator->getRegisters().AX.h -= 1;
+        emulator->getRegisters().AX.bytes.l -= 6;
+        emulator->getRegisters().AX.bytes.h -= 1;
         emulator->getRegisters().FLAGS |= (Registers::AF | Registers::CF);
     }
     else
     {
         emulator->getRegisters().FLAGS &= ~(Registers::AF | Registers::CF);
     }
-    emulator->getRegisters().AX.l &= 0x0F;
+    emulator->getRegisters().AX.bytes.l &= 0x0F;
 }
 
 void ArithmeticInstructions::das(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("DAS takes no operands");
-    uint8_t oldAL = emulator->getRegisters().AX.l;
+    uint8_t oldAL = emulator->getRegisters().AX.bytes.l;
     bool oldCF = emulator->getRegisters().FLAGS & Registers::CF;
     emulator->getRegisters().FLAGS &= ~Registers::CF;
-    if ((emulator->getRegisters().AX.l & 0x0F) > 9 || (emulator->getRegisters().FLAGS & Registers::AF))
+    if ((emulator->getRegisters().AX.bytes.l & 0x0F) > 9 || (emulator->getRegisters().FLAGS & Registers::AF))
     {
-        emulator->getRegisters().AX.l -= 6;
+        emulator->getRegisters().AX.bytes.l -= 6;
         emulator->getRegisters().FLAGS |= Registers::AF;
     }
     if ((oldAL > 0x99) || oldCF)
     {
-        emulator->getRegisters().AX.l -= 0x60;
+        emulator->getRegisters().AX.bytes.l -= 0x60;
         emulator->getRegisters().FLAGS |= Registers::CF;
     }
 }
@@ -301,7 +301,7 @@ void ArithmeticInstructions::mul(const std::vector<std::string> &operands)
         throw std::runtime_error("MUL requires 1 operand");
     if (emulator->is8BitRegister(operands[0]))
     {
-        uint16_t result = emulator->getRegisters().AX.l * emulator->getRegister8(operands[0]);
+        uint16_t result = emulator->getRegisters().AX.bytes.l * emulator->getRegister8(operands[0]);
         emulator->getRegisters().AX.x = result;
         emulator->updateFlags(result, false, true);
     }
@@ -320,7 +320,7 @@ void ArithmeticInstructions::imul(const std::vector<std::string> &operands)
         throw std::runtime_error("IMUL requires 1 operand");
     if (emulator->is8BitRegister(operands[0]))
     {
-        int16_t result = static_cast<int8_t>(emulator->getRegisters().AX.l) * static_cast<int8_t>(emulator->getRegister8(operands[0]));
+        int16_t result = static_cast<int8_t>(emulator->getRegisters().AX.bytes.l) * static_cast<int8_t>(emulator->getRegister8(operands[0]));
         emulator->getRegisters().AX.x = result;
         emulator->updateFlags(result, false, true);
     }
@@ -337,9 +337,9 @@ void ArithmeticInstructions::aam(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("AAM takes no operands");
-    uint8_t al = emulator->getRegisters().AX.l;
-    emulator->getRegisters().AX.h = al / 10;
-    emulator->getRegisters().AX.l = al % 10;
+    uint8_t al = emulator->getRegisters().AX.bytes.l;
+    emulator->getRegisters().AX.bytes.h = al / 10;
+    emulator->getRegisters().AX.bytes.l = al % 10;
     emulator->updateFlags(emulator->getRegisters().AX.x, false, false);
 }
 
@@ -353,8 +353,8 @@ void ArithmeticInstructions::div(const std::vector<std::string> &operands)
         if (divisor == 0)
             throw std::runtime_error("Division by zero");
         uint16_t dividend = emulator->getRegisters().AX.x;
-        emulator->getRegisters().AX.l = dividend / divisor;
-        emulator->getRegisters().AX.h = dividend % divisor;
+        emulator->getRegisters().AX.bytes.l = dividend / divisor;
+        emulator->getRegisters().AX.bytes.h = dividend % divisor;
     }
     else
     {
@@ -377,8 +377,8 @@ void ArithmeticInstructions::idiv(const std::vector<std::string> &operands)
         if (divisor == 0)
             throw std::runtime_error("Division by zero");
         int16_t dividend = static_cast<int16_t>(emulator->getRegisters().AX.x);
-        emulator->getRegisters().AX.l = dividend / divisor;
-        emulator->getRegisters().AX.h = dividend % divisor;
+        emulator->getRegisters().AX.bytes.l = dividend / divisor;
+        emulator->getRegisters().AX.bytes.h = dividend % divisor;
     }
     else
     {
@@ -395,8 +395,8 @@ void ArithmeticInstructions::aad(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("AAD takes no operands");
-    emulator->getRegisters().AX.l = (emulator->getRegisters().AX.h * 10) + emulator->getRegisters().AX.l;
-    emulator->getRegisters().AX.h = 0;
+    emulator->getRegisters().AX.bytes.l = (emulator->getRegisters().AX.bytes.h * 10) + emulator->getRegisters().AX.bytes.l;
+    emulator->getRegisters().AX.bytes.h = 0;
     emulator->updateFlags(emulator->getRegisters().AX.x, false, false);
 }
 
@@ -404,7 +404,7 @@ void ArithmeticInstructions::cbw(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("CBW takes no operands");
-    emulator->getRegisters().AX.h = (emulator->getRegisters().AX.l & 0x80) ? 0xFF : 0x00;
+    emulator->getRegisters().AX.bytes.h = (emulator->getRegisters().AX.bytes.l & 0x80) ? 0xFF : 0x00;
 }
 
 void ArithmeticInstructions::cwd(const std::vector<std::string> &operands)

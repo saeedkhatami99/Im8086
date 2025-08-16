@@ -43,7 +43,10 @@ int main(int argc, char **argv)
         std::cout << "> ";
         std::getline(std::cin, input);
 
-        if (input == ":3xit")
+        if (input == ":3xit" || 
+            input == "exit" || 
+            input == "quit" || 
+            input == "3xit")
             break;
         if (input == "?")
         {

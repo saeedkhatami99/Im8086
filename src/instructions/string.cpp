@@ -57,7 +57,7 @@ void StringInstructions::scasb(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("SCASB takes no operands");
-    uint8_t dest = emulator->getRegisters().AX.l;
+    uint8_t dest = emulator->getRegisters().AX.bytes.l;
     uint8_t src = emulator->readMemoryByte(emulator->getRegisters().DI);
     uint16_t result = dest - src;
     emulator->updateFlags(result, true, true);
@@ -81,7 +81,7 @@ void StringInstructions::lodsb(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("LODSB takes no operands");
-    emulator->getRegisters().AX.l = emulator->readMemoryByte(emulator->getRegisters().SI);
+    emulator->getRegisters().AX.bytes.l = emulator->readMemoryByte(emulator->getRegisters().SI);
     int adjust = (emulator->getRegisters().FLAGS & Registers::DF) ? -1 : 1;
     emulator->getRegisters().SI += adjust;
 }
@@ -99,7 +99,7 @@ void StringInstructions::stosb(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("STOSB takes no operands");
-    emulator->writeMemoryByte(emulator->getRegisters().DI, emulator->getRegisters().AX.l);
+    emulator->writeMemoryByte(emulator->getRegisters().DI, emulator->getRegisters().AX.bytes.l);
     int adjust = (emulator->getRegisters().FLAGS & Registers::DF) ? -1 : 1;
     emulator->getRegisters().DI += adjust;
 }
@@ -212,8 +212,8 @@ void StringInstructions::xlat(const std::vector<std::string> &operands)
 {
     if (!operands.empty())
         throw std::runtime_error("XLAT takes no operands");
-    uint16_t address = emulator->getRegisters().BX.x + emulator->getRegisters().AX.l;
-    emulator->getRegisters().AX.l = emulator->readMemoryByte(address);
+    uint16_t address = emulator->getRegisters().BX.x + emulator->getRegisters().AX.bytes.l;
+    emulator->getRegisters().AX.bytes.l = emulator->readMemoryByte(address);
 }
 
 void StringInstructions::xlatb(const std::vector<std::string> &operands)
