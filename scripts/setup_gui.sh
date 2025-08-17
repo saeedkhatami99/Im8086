@@ -7,7 +7,6 @@ IMGUI_DIR="$THIRD_PARTY_DIR/imgui"
 
 echo "Setting up 8086 Emulator GUI dependencies..."
 
-# Check if we're in a git repository and handle submodules
 if [ -d "$PROJECT_ROOT/.git" ] && [ -f "$PROJECT_ROOT/.gitmodules" ]; then
     echo "Git repository detected with submodules configuration"
     if [ ! -d "$IMGUI_DIR" ] || [ ! "$(ls -A "$IMGUI_DIR")" ]; then
@@ -17,7 +16,6 @@ if [ -d "$PROJECT_ROOT/.git" ] && [ -f "$PROJECT_ROOT/.gitmodules" ]; then
         echo "ImGui submodule initialized successfully"
     else
         echo "ImGui submodule already exists and is populated"
-        # Verify it's the correct version
         cd "$IMGUI_DIR"
         if git describe --tags 2>/dev/null | grep -q "v1.90.1"; then
             echo "ImGui v1.90.1 confirmed"
