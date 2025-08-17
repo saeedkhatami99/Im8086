@@ -12,12 +12,46 @@ set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 add_compile_options(-Wall -Wextra -Wpedantic)
 include_directories(include)
-find_package(PkgConfig REQUIRED)
+
+# Try to find PkgConfig (optional, mainly for Unix systems)
+find_package(PkgConfig QUIET)
+
+# Try to find SDL2 using different methods
 find_package(SDL2 QUIET)
 
-if(NOT SDL2_FOUND)
-    
+# If SDL2 not found and we have pkg-config, try that
+if(NOT SDL2_FOUND AND PkgConfig_FOUND)
     pkg_check_modules(SDL2 QUIET sdl2)
+endif()
+
+# Windows-specific SDL2 search
+if(NOT SDL2_FOUND AND WIN32)
+    # Try common Windows SDL2 installation paths
+    find_path(SDL2_INCLUDE_DIRS SDL.h
+        HINTS
+        ENV SDL2DIR
+        PATH_SUFFIXES include SDL2 include/SDL2
+        PATHS
+        ${CMAKE_PREFIX_PATH}
+        /usr/local
+        /usr
+    )
+    
+    find_library(SDL2_LIBRARIES
+        NAMES SDL2 SDL2main
+        HINTS
+        ENV SDL2DIR
+        PATH_SUFFIXES lib lib64 lib/x64 lib/x86
+        PATHS
+        ${CMAKE_PREFIX_PATH}
+        /usr/local
+        /usr
+    )
+    
+    if(SDL2_INCLUDE_DIRS AND SDL2_LIBRARIES)
+        set(SDL2_FOUND TRUE)
+        message(STATUS "Found SDL2 (Windows): ${SDL2_LIBRARIES}")
+    endif()
 endif()
 
 find_package(OpenGL QUIET)
@@ -33,7 +67,20 @@ endif()
 set(BUILD_TUI OFF)
 
 if(UNIX)
-    pkg_check_modules(NCURSES QUIET ncurses)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(NCURSES QUIET ncurses)
+    endif()
+    
+    # Fallback to find_package if pkg-config didn't work
+    if(NOT NCURSES_FOUND)
+        find_package(Curses QUIET)
+        if(CURSES_FOUND)
+            set(NCURSES_FOUND TRUE)
+            set(NCURSES_LIBRARIES ${CURSES_LIBRARIES})
+            set(NCURSES_INCLUDE_DIRS ${CURSES_INCLUDE_DIRS})
+        endif()
+    endif()
+    
     if(NCURSES_FOUND)
         set(BUILD_TUI ON)
         message(STATUS "TUI support enabled")

@@ -92,8 +92,8 @@ jobs:
     - name: Install dependencies (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        # Windows dependencies would be handled by vcpkg or similar
-        echo "Windows build dependencies setup"
+        # For Windows, we'll build without GUI/TUI for now since dependency setup is complex
+        echo "Windows build - GUI/TUI dependencies skipped for CI"
     
     - name: Install dependencies (macOS)
       if: matrix.os == 'macos-latest'
@@ -107,6 +107,7 @@ jobs:
       run: |
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+      shell: bash
     
     - name: Build
       run: |
