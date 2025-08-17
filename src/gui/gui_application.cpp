@@ -9,11 +9,14 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <stdexcept>
 #include <cstdlib>  // for setenv
+#include <cstring>  // for memcpy
 
 GUIApplication::GUIApplication() {
     // Constructor - minimal initialization
+    assemblyEditorCharBuffer[0] = '\0';
 }
 
 GUIApplication::~GUIApplication() {
@@ -474,6 +477,12 @@ void GUIApplication::handleKeyDown(const SDL_Event& event) {
                 }
             }
             break;
+            
+        case SDLK_RETURN:
+            if (ctrl) {
+                assembleAndLoad();
+            }
+            break;
     }
 }
 
@@ -637,53 +646,126 @@ void GUIApplication::renderDemoWindow() {
 void GUIApplication::renderAssemblyEditor() {
     if (!showAssemblyEditor) return;
     
-    if (ImGui::Begin("Assembly Code", &showAssemblyEditor)) {
+    if (ImGui::Begin("Assembly Editor", &showAssemblyEditor)) {
         
+        // Toolbar
+        if (ImGui::Button("New")) {
+            assemblyLines.clear();
+            assemblyLines.push_back("; New 8086 Assembly Program");
+            assemblyLines.push_back("");
+            assemblyEditorModified = true;
+            loadedFilePath = "";
+            syncEditorBuffer();
+        }
+        
+        ImGui::SameLine();
+        if (ImGui::Button("Load")) {
+            // Simple file loading - user enters path
+            static char filepath[256] = "";
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(200);
+            if (ImGui::InputText("##filepath", filepath, sizeof(filepath), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                if (strlen(filepath) > 0) {
+                    if (loadAssemblyFile(filepath)) {
+                        syncEditorBuffer();
+                        assemblyEditorModified = false;
+                    }
+                }
+            }
+        }
+        
+        ImGui::SameLine();
+        if (ImGui::Button("Save")) {
+            if (!loadedFilePath.empty()) {
+                saveAssemblyFile(loadedFilePath);
+                assemblyEditorModified = false;
+            } else {
+                ImGui::OpenPopup("Save As");
+            }
+        }
+        
+        ImGui::SameLine();
+        if (ImGui::Button("Assemble & Load")) {
+            assembleAndLoad();
+        }
+        
+        // Save As dialog
+        if (ImGui::BeginPopupModal("Save As", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            static char saveFilepath[256] = "";
+            ImGui::Text("Enter filename to save:");
+            ImGui::InputText("##savefilepath", saveFilepath, sizeof(saveFilepath));
+            
+            if (ImGui::Button("Save", ImVec2(120, 0))) {
+                if (strlen(saveFilepath) > 0) {
+                    if (saveAssemblyFile(saveFilepath)) {
+                        loadedFilePath = saveFilepath;
+                        assemblyEditorModified = false;
+                    }
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+        
+        ImGui::Separator();
+        
+        // File info
         if (!loadedFilePath.empty()) {
             ImGui::Text("File: %s", loadedFilePath.c_str());
-            ImGui::Text("Lines: %zu", assemblyLines.size());
-            ImGui::Separator();
-            
-            // Create a child window for the code with scrolling
-            ImGui::BeginChild("AssemblyCode", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), true);
-            
-            for (size_t i = 0; i < assemblyLines.size(); ++i) {
-                ImGui::Text("%3zu: %s", i + 1, assemblyLines[i].c_str());
-            }
-            
-            ImGui::EndChild();
-            
-            if (ImGui::Button("Reload File")) {
-                if (!loadAssemblyFile(loadedFilePath)) {
-                    std::cerr << "Failed to reload file: " << loadedFilePath << std::endl;
-                }
-            }
-            
-            ImGui::SameLine();
-            if (ImGui::Button("Reset Emulator")) {
-                if (emulator) {
-                    emulator->reset();
-                    if (!assemblyLines.empty()) {
-                        emulator->loadProgram(assemblyLines);
-                    }
-                    std::cout << "Emulator reset and program reloaded\n";
-                }
+            if (assemblyEditorModified) {
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "*modified*");
             }
         } else {
-            ImGui::Text("No assembly file loaded");
-            ImGui::Text("Use: ./8086emu --gui <filename.asm>");
-            ImGui::Separator();
-            
-            static char filename[256] = "";
-            ImGui::InputText("File path", filename, sizeof(filename));
-            ImGui::SameLine();
-            if (ImGui::Button("Load File")) {
-                if (strlen(filename) > 0) {
-                    if (!loadAssemblyFile(filename)) {
-                        std::cerr << "Failed to load file: " << filename << std::endl;
-                    }
-                }
+            ImGui::Text("New file (unsaved)");
+            if (assemblyEditorModified) {
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "*modified*");
             }
+        }
+        
+        ImGui::Text("Lines: %zu", assemblyLines.size());
+        ImGui::Separator();
+        
+        // Text editor
+        static bool firstTime = true;
+        if (firstTime && !assemblyLines.empty()) {
+            syncEditorBuffer();
+            firstTime = false;
+        }
+        
+        // Multi-line text input
+        ImGui::Text("Assembly Code (Ctrl+Enter to assemble):");
+        ImVec2 textSize = ImVec2(-1.0f, -ImGui::GetFrameHeightWithSpacing() * 2);
+        
+        bool contentChanged = ImGui::InputTextMultiline(
+            "##assemblycode", 
+            assemblyEditorCharBuffer,
+            EDITOR_BUFFER_SIZE,
+            textSize,
+            ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackEdit,
+            textEditCallback,
+            this
+        );
+        
+        if (contentChanged) {
+            assemblyEditorModified = true;
+            assemblyEditorBuffer = assemblyEditorCharBuffer;
+            updateAssemblyLinesFromBuffer();
+        }
+        
+        // Status bar
+        ImGui::Separator();
+        ImGui::Text("Cursor: Line %d", getCurrentLineNumber());
+        ImGui::SameLine();
+        if (assemblyEditorModified) {
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "Modified");
+        } else {
+            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Saved");
         }
         
         ImGui::End();
@@ -701,7 +783,7 @@ void GUIApplication::renderEmulatorStatus() {
         
         // Show basic emulator info
         ImGui::Text("Memory Size: %zu bytes", emulator->getMemory().size());
-        ImGui::Text("Current IP: %04X", emulator->getIP());
+        ImGui::Text("Current IP: %04X", (unsigned int)emulator->getIP());
         
         // Program information
         const auto& program = emulator->getProgram();
@@ -996,6 +1078,89 @@ void GUIApplication::renderMemoryWindow() {
         
         ImGui::End();
     }
+}
+
+void GUIApplication::syncEditorBuffer() {
+    assemblyEditorBuffer.clear();
+    for (size_t i = 0; i < assemblyLines.size(); ++i) {
+        assemblyEditorBuffer += assemblyLines[i];
+        if (i < assemblyLines.size() - 1) {
+            assemblyEditorBuffer += "\n";
+        }
+    }
+    
+    // Copy to char buffer for ImGui
+    size_t copySize = std::min(assemblyEditorBuffer.size(), EDITOR_BUFFER_SIZE - 1);
+    memcpy(assemblyEditorCharBuffer, assemblyEditorBuffer.c_str(), copySize);
+    assemblyEditorCharBuffer[copySize] = '\0';
+}
+
+void GUIApplication::updateAssemblyLinesFromBuffer() {
+    assemblyLines.clear();
+    std::stringstream ss(assemblyEditorBuffer);
+    std::string line;
+    while (std::getline(ss, line)) {
+        assemblyLines.push_back(line);
+    }
+    // Ensure at least one empty line
+    if (assemblyLines.empty()) {
+        assemblyLines.push_back("");
+    }
+}
+
+bool GUIApplication::saveAssemblyFile(const std::string& filePath) {
+    std::ofstream file(filePath);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filePath << std::endl;
+        return false;
+    }
+    
+    for (const auto& line : assemblyLines) {
+        file << line << "\n";
+    }
+    
+    file.close();
+    std::cout << "Saved " << assemblyLines.size() << " lines to " << filePath << std::endl;
+    return true;
+}
+
+void GUIApplication::assembleAndLoad() {
+    if (!emulator) {
+        std::cerr << "Emulator not initialized" << std::endl;
+        return;
+    }
+    
+    try {
+        updateAssemblyLinesFromBuffer(); // Ensure lines are up to date
+        emulator->reset();
+        emulator->loadProgram(assemblyLines);
+        std::cout << "Program assembled and loaded successfully (" << assemblyLines.size() << " lines)" << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Assembly/load error: " << e.what() << std::endl;
+    }
+}
+
+int GUIApplication::getCurrentLineNumber() {
+    // Simple line counting - count newlines up to cursor
+    // This is a basic implementation
+    return currentLine + 1;
+}
+
+int GUIApplication::textEditCallback(ImGuiInputTextCallbackData* data) {
+    GUIApplication* app = (GUIApplication*)data->UserData;
+    
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackEdit) {
+        // Track line number for cursor position
+        // This is a simplified version
+        app->currentLine = 0;
+        for (int i = 0; i < data->CursorPos; i++) {
+            if (data->Buf[i] == '\n') {
+                app->currentLine++;
+            }
+        }
+    }
+    
+    return 0;
 }
 
 void GUIApplication::cleanupImGui() {

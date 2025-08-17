@@ -8,6 +8,7 @@
 
 // Forward declarations to avoid including ImGui in header
 struct ImGuiContext;
+struct ImGuiInputTextCallbackData;
 typedef union SDL_Event SDL_Event;
 
 class Emulator8086;
@@ -46,6 +47,13 @@ private:
     int memoryViewStart = 0;
     int memoryViewSize = 256;
     
+    // Assembly editor state
+    bool assemblyEditorModified = false;
+    std::string assemblyEditorBuffer;
+    static constexpr size_t EDITOR_BUFFER_SIZE = 65536;
+    char assemblyEditorCharBuffer[EDITOR_BUFFER_SIZE];
+    int currentLine = 0;
+    
     // Initialization helpers
     bool initSDL(int width, int height, const std::string& title);
     bool initOpenGL();
@@ -68,6 +76,14 @@ private:
     void renderEmulatorStatus();
     void renderRegistersWindow();
     void renderMemoryWindow();
+    
+    // Assembly editor helpers
+    void syncEditorBuffer();
+    void updateAssemblyLinesFromBuffer();
+    bool saveAssemblyFile(const std::string& filePath);
+    void assembleAndLoad();
+    int getCurrentLineNumber();
+    static int textEditCallback(ImGuiInputTextCallbackData* data);
     
     // Cleanup
     void cleanupImGui();
