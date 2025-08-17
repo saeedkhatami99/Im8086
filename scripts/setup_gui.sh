@@ -1,18 +1,43 @@
 #!/bin/bash
 
 set -e
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 THIRD_PARTY_DIR="$PROJECT_ROOT/third_party"
 IMGUI_DIR="$THIRD_PARTY_DIR/imgui"
+
 echo "Setting up 8086 Emulator GUI dependencies..."
-mkdir -p "$THIRD_PARTY_DIR"
-if [ ! -d "$IMGUI_DIR" ]; then
-    echo "Downloading ImGui..."
-    cd "$THIRD_PARTY_DIR"  
-    git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git
-    echo "ImGui downloaded successfully"
+
+# Check if we're in a git repository and handle submodules
+if [ -d "$PROJECT_ROOT/.git" ] && [ -f "$PROJECT_ROOT/.gitmodules" ]; then
+    echo "Git repository detected with submodules configuration"
+    if [ ! -d "$IMGUI_DIR" ] || [ ! "$(ls -A "$IMGUI_DIR")" ]; then
+        echo "Initializing ImGui submodule..."
+        cd "$PROJECT_ROOT"
+        git submodule update --init --recursive third_party/imgui
+        echo "ImGui submodule initialized successfully"
+    else
+        echo "ImGui submodule already exists and is populated"
+        # Verify it's the correct version
+        cd "$IMGUI_DIR"
+        if git describe --tags 2>/dev/null | grep -q "v1.90.1"; then
+            echo "ImGui v1.90.1 confirmed"
+        else
+            echo "Updating ImGui submodule to correct version..."
+            cd "$PROJECT_ROOT"
+            git submodule update --init --recursive third_party/imgui
+        fi
+    fi
 else
-    echo "ImGui already exists in $IMGUI_DIR"
+    echo "No git repository or submodules detected, falling back to direct download"
+    mkdir -p "$THIRD_PARTY_DIR"
+    if [ ! -d "$IMGUI_DIR" ]; then
+        echo "Downloading ImGui v1.90.1..."
+        cd "$THIRD_PARTY_DIR"  
+        git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git
+        echo "ImGui downloaded successfully"
+    else
+        echo "ImGui already exists in $IMGUI_DIR"
+    fi
 fi
 echo "Checking system dependencies..."
 command_exists() {
