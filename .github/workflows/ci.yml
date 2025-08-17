@@ -171,7 +171,7 @@ jobs:
   release:
     needs: [build-and-test, cross-platform-test]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     
     steps:
     - name: Download all artifacts
