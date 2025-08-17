@@ -168,7 +168,7 @@ jobs:
       with:
         name: 8086emu-${{ matrix.os }}
         path: build/8086emu-${{ matrix.os }}.tar.gz
-        retention-days: 30
+        retention-days: 3
 
   release:
     needs: [build-and-test, cross-platform-test]
