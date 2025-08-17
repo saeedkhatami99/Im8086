@@ -9,9 +9,9 @@
 #include <stdexcept>
 
 #ifdef _WIN32
-#include <windows.h>
 #include <commdlg.h>
 #include <io.h>
+#include <windows.h>
 #define popen _popen
 #define pclose _pclose
 #else
@@ -26,74 +26,72 @@
 
 #include "emulator8086.h"
 
-// Cross-platform helper functions
 namespace {
-    // Cross-platform environment variable functions
-    bool setEnvironmentVariable(const char* name, const char* value) {
-#ifdef _WIN32
-        return SetEnvironmentVariableA(name, value) != 0;
-#else
-        return setenv(name, value, 1) == 0;
-#endif
-    }
 
-    std::string getEnvironmentVariable(const char* name) {
+bool setEnvironmentVariable(const char* name, const char* value) {
 #ifdef _WIN32
-        char buffer[1024];
-        DWORD result = GetEnvironmentVariableA(name, buffer, sizeof(buffer));
-        if (result > 0 && result < sizeof(buffer)) {
-            return std::string(buffer);
-        }
-        return "";
+    return SetEnvironmentVariableA(name, value) != 0;
 #else
-        const char* value = std::getenv(name);
-        return value ? std::string(value) : "";
+    return setenv(name, value, 1) == 0;
 #endif
-    }
-
-    // Cross-platform command execution
-    std::string executeCommand(const std::string& command) {
-#ifdef _WIN32
-        // On Windows, we'll disable file dialogs for now as they need different implementation
-        return "";
-#else
-        FILE* pipe = popen(command.c_str(), "r");
-        if (!pipe) {
-            return "";
-        }
-
-        char buffer[1024];
-        std::string result;
-        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-            result += buffer;
-        }
-        
-        pclose(pipe);
-        
-        if (!result.empty() && result.back() == '\n') {
-            result.pop_back();
-        }
-        
-        return result;
-#endif
-    }
-
-    bool commandExists(const std::string& command) {
-#ifdef _WIN32
-        return false; // Disable on Windows for now
-#else
-        FILE* pipe = popen((command + " 2>/dev/null").c_str(), "r");
-        if (!pipe) {
-            return false;
-        }
-        
-        char buffer[128];
-        bool found = fgets(buffer, sizeof(buffer), pipe) != nullptr;
-        pclose(pipe);
-        return found;
-#endif
-    }
 }
+
+std::string getEnvironmentVariable(const char* name) {
+#ifdef _WIN32
+    char buffer[1024];
+    DWORD result = GetEnvironmentVariableA(name, buffer, sizeof(buffer));
+    if (result > 0 && result < sizeof(buffer)) {
+        return std::string(buffer);
+    }
+    return "";
+#else
+    const char* value = std::getenv(name);
+    return value ? std::string(value) : "";
+#endif
+}
+
+std::string executeCommand(const std::string& command) {
+#ifdef _WIN32
+
+    return "";
+#else
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe) {
+        return "";
+    }
+
+    char buffer[1024];
+    std::string result;
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        result += buffer;
+    }
+
+    pclose(pipe);
+
+    if (!result.empty() && result.back() == '\n') {
+        result.pop_back();
+    }
+
+    return result;
+#endif
+}
+
+bool commandExists(const std::string& command) {
+#ifdef _WIN32
+    return false;
+#else
+    FILE* pipe = popen((command + " 2>/dev/null").c_str(), "r");
+    if (!pipe) {
+        return false;
+    }
+
+    char buffer[128];
+    bool found = fgets(buffer, sizeof(buffer), pipe) != nullptr;
+    pclose(pipe);
+    return found;
+#endif
+}
+}  // namespace
 
 GUIApplication::GUIApplication() {
     assemblyEditorCharBuffer[0] = '\0';
@@ -1440,10 +1438,10 @@ void GUIApplication::renderFileDialog() {
 
 std::string GUIApplication::openFileDialog(const std::string& title, const std::string& filters) {
 #ifdef _WIN32
-    // On Windows, use native file dialog
+
     OPENFILENAMEA ofn;
     char szFile[260] = {0};
-    
+
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
     ofn.lpstrFile = szFile;
@@ -1454,13 +1452,13 @@ std::string GUIApplication::openFileDialog(const std::string& title, const std::
     ofn.nMaxFileTitle = 0;
     ofn.lpstrInitialDir = NULL;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-    
+
     if (GetOpenFileNameA(&ofn)) {
         return std::string(szFile);
     }
     return "";
 #else
-    // On Unix-like systems, try zenity first, then kdialog
+
     std::string command = "zenity --file-selection --title=\"" + title + "\"";
     if (!filters.empty()) {
         command += " --file-filter='Assembly files (" + filters + ")|" + filters + "'";
@@ -1480,10 +1478,9 @@ std::string GUIApplication::openFileDialog(const std::string& title, const std::
 
 bool GUIApplication::isFileDialogAvailable() {
 #ifdef _WIN32
-    // Windows always has native file dialogs available
+
     return true;
 #else
-    // Check for zenity or kdialog on Unix-like systems
     return commandExists("which zenity") || commandExists("which kdialog");
 #endif
 }
