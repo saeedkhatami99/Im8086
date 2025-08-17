@@ -2,11 +2,17 @@
 
 A comprehensive Intel 8086 microprocessor emulator with both GUI and TUI interfaces, featuring real-time debugging, memory inspection, and interactive assembly editing.
 
+## Gallery
+
 ![EMU](docs/emu.png)
 
 ---
 
 ![TUI](docs/tui.png)
+
+---
+
+![GUI](docs/gui.png)
 
 ## Features
 
