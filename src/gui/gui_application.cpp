@@ -28,6 +28,7 @@
 #include <imgui_impl_sdl2.h>
 
 #include "emulator8086.h"
+#include "version.h"
 
 namespace {
 

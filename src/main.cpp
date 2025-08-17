@@ -7,6 +7,7 @@
 #include "emulator8086.h"
 #include "ide_tui.h"
 #include "tui.h"
+#include "version.h"
 #ifdef WITH_GUI
 int main_gui(int argc, char* argv[]);
 #endif
@@ -47,7 +48,9 @@ int main(int argc, char** argv) {
 #endif
 
     if (argc > 1) {
-        std::cout << "8086 Emulator Usage:\n";
+        std::cout << "Im8086 Emulator v" << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH << " (" << BUILD_PLATFORM << ")\n";
+        std::cout << "Intel 8086 Microprocessor Emulator\n\n";
+        std::cout << "Usage:\n";
         std::cout << "  " << argv[0] << "                    - Interactive command line mode\n";
 #ifdef WITH_GUI
         std::cout << "  " << argv[0] << " --gui             - Modern GUI mode with SDL2/ImGui\n";
@@ -82,7 +85,8 @@ int main(int argc, char** argv) {
 
     std::string input;
 
-    std::cout << "8086 Emulator\n";
+    std::cout << "Im8086 Emulator v" << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH << " (" << BUILD_PLATFORM << ")\n";
+    std::cout << "Intel 8086 Microprocessor Emulator\n\n";
     std::cout << "Commands:\n";
     std::cout << "  '?' - display help\n";
     std::cout << "  'reg' - display registers\n";

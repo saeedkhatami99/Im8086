@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
-project(Im8086 CXX)
+project(Im8086 
+    VERSION 1.0.0
+    DESCRIPTION "Intel 8086 Microprocessor Emulator with GUI and TUI"
+    LANGUAGES CXX
+)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
