@@ -132,5 +132,61 @@ jobs:
       if: matrix.os == 'windows-latest'
       run: |
         cd build
-        .\test_emulator.exe
+        Release\test_emulator.exe
+        Release\test_gui.exe
       shell: cmd
+
+    - name: Prepare release artifacts (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        cd build
+        mkdir -p release-artifacts
+        cp 8086emu test_emulator test_gui release-artifacts/ 2>/dev/null || true
+        cp ../samples/sample_*.txt release-artifacts/ 2>/dev/null || true
+        cp ../samples/tui/sample_*.asm release-artifacts/ 2>/dev/null || true
+        cp ../README.md release-artifacts/ 2>/dev/null || true
+        cd release-artifacts
+        tar -czf ../8086emu-${{ matrix.os }}.tar.gz *
+
+    - name: Prepare release artifacts (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd build
+        mkdir release-artifacts
+        copy Release\8086emu.exe release-artifacts\ 2>nul
+        copy Release\test_emulator.exe release-artifacts\ 2>nul
+        copy Release\test_gui.exe release-artifacts\ 2>nul
+        copy ..\samples\sample_*.txt release-artifacts\ 2>nul
+        copy ..\samples\tui\sample_*.asm release-artifacts\ 2>nul
+        copy ..\README.md release-artifacts\ 2>nul
+        cd release-artifacts
+        tar -czf ..\8086emu-${{ matrix.os }}.tar.gz *
+      shell: cmd
+
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: 8086emu-${{ matrix.os }}
+        path: build/8086emu-${{ matrix.os }}.tar.gz
+        retention-days: 30
+
+  release:
+    needs: [build-and-test, cross-platform-test]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: artifacts/*/8086emu-*.tar.gz
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
