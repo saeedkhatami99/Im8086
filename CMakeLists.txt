@@ -15,33 +15,33 @@ set(TARGET_NAME "8086emu")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 if (MSVC)
-  # /W4 is close to -Wextra; /permissive- tightens standard conformance
+  
   add_compile_options(/W4 /permissive-)
 else()
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
-# add_compile_options(-Wall -Wextra -Wpedantic)
+
 include_directories(include)
 
-# Try to find PkgConfig (optional, mainly for Unix systems)
+
 find_package(PkgConfig QUIET)
 
-# Try to find SDL2 using different methods
+
 find_package(SDL2 QUIET)
 
-# If SDL2 not found, try SDL2 config mode (for vcpkg and other modern installations)
+
 if(NOT SDL2_FOUND)
     find_package(SDL2 QUIET CONFIG)
 endif()
 
-# If SDL2 not found and we have pkg-config, try that
+
 if(NOT SDL2_FOUND AND PkgConfig_FOUND)
     pkg_check_modules(SDL2 QUIET sdl2)
 endif()
 
-# Windows-specific SDL2 search (fallback)
+
 if(NOT SDL2_FOUND AND WIN32)
-    # Try common Windows SDL2 installation paths
+    
     find_path(SDL2_INCLUDE_DIRS SDL.h
         HINTS
         ENV SDL2DIR
@@ -86,7 +86,7 @@ if(UNIX)
         pkg_check_modules(NCURSES QUIET ncurses)
     endif()
     
-    # Fallback to find_package if pkg-config didn't work
+    
     if(NOT NCURSES_FOUND)
         find_package(Curses QUIET)
         if(CURSES_FOUND)
@@ -131,7 +131,7 @@ if(BUILD_GUI)
             ${IMGUI_DIR}/backends
         )
         
-        # Link imgui with SDL2 - prefer modern target-based approach
+        
         if(TARGET SDL2::SDL2)
             target_link_libraries(imgui PUBLIC SDL2::SDL2)
             target_include_directories(imgui PUBLIC ${SDL2_INCLUDE_DIRS})
@@ -210,7 +210,7 @@ if(BUILD_GUI)
         ${OPENGL_LIBRARIES}
     )
     
-    # Handle SDL2 linking - prefer modern target-based approach (vcpkg)
+    
     if(TARGET SDL2::SDL2)
         list(APPEND LINK_LIBRARIES SDL2::SDL2 SDL2::SDL2main)
     elseif(SDL2_LIBRARIES)
@@ -287,7 +287,7 @@ if(BUILD_TESTS)
             ${OPENGL_LIBRARIES}
         )
         
-        # Handle SDL2 linking - prefer modern target-based approach (vcpkg)
+        
         if(TARGET SDL2::SDL2)
             target_link_libraries(test_gui SDL2::SDL2 SDL2::SDL2main)
         elseif(SDL2_LIBRARIES)

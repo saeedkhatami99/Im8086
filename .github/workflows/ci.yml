@@ -50,7 +50,6 @@ jobs:
       run: |
         cd build
         ./test_emulator
-        # GUI tests require display, skip for now
         # ./test_gui
     
     # - name: Check code formatting
@@ -92,7 +91,6 @@ jobs:
     - name: Install dependencies (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        # Install SDL2 using vcpkg
         git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
         C:\vcpkg\bootstrap-vcpkg.bat
         C:\vcpkg\vcpkg install sdl2:x64-windows
