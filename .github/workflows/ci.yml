@@ -1,0 +1,190 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+        
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libsdl2-dev \
+          libgl1-mesa-dev \
+          libncurses5-dev \
+          clang-format \
+          clang-tidy
+    
+    - name: Create build directory
+      run: mkdir build
+    
+    - name: Configure CMake
+      run: |
+        cd build
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DBUILD_TESTS=ON
+    
+    - name: Build
+      run: |
+        cd build
+        make -j$(nproc)
+    
+    - name: Run tests
+      run: |
+        cd build
+        ./test_emulator
+        # ./test_gui
+    
+    # - name: Check code formatting
+    #   run: |
+    #     find src include tests -name "*.cpp" -o -name "*.h" | \
+    #     xargs clang-format -style=file --dry-run --Werror
+    #   
+    # - name: Run static analysis
+    #   run: |
+    #     cd build
+    #     # Run clang-tidy on main source files
+    #     find ../src ../include -name "*.cpp" -not -path "*/third_party/*" | \
+    #     head -5 | \
+    #     xargs clang-tidy -p . --warnings-as-errors=*
+
+  cross-platform-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    
+    - name: Install dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libsdl2-dev \
+          libgl1-mesa-dev \
+          libncurses5-dev
+    
+    - name: Install dependencies (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
+        C:\vcpkg\bootstrap-vcpkg.bat
+        C:\vcpkg\vcpkg install sdl2:x64-windows
+        echo "CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      shell: powershell
+    
+    - name: Install dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install sdl2 ncurses
+    
+    - name: Create build directory
+      run: mkdir build
+    
+    - name: Configure CMake
+      run: |
+        cd build
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+        else
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+        fi
+      shell: bash
+    
+    - name: Build
+      run: |
+        cd build
+        cmake --build . --config Release
+    
+    - name: Test (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        cd build
+        ./test_emulator
+    
+    - name: Test (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd build
+        Release\test_emulator.exe
+        Release\test_gui.exe
+      shell: cmd
+
+    - name: Prepare release artifacts (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        cd build
+        mkdir -p release-artifacts
+        cp 8086emu test_emulator test_gui release-artifacts/ 2>/dev/null || true
+        cp ../samples/sample_*.txt release-artifacts/ 2>/dev/null || true
+        cp ../samples/tui/sample_*.asm release-artifacts/ 2>/dev/null || true
+        cp ../README.md release-artifacts/ 2>/dev/null || true
+        cd release-artifacts
+        tar -czf ../8086emu-${{ matrix.os }}.tar.gz *
+
+    - name: Prepare release artifacts (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd build
+        mkdir release-artifacts
+        copy Release\8086emu.exe release-artifacts\ 2>nul
+        copy Release\test_emulator.exe release-artifacts\ 2>nul
+        copy Release\test_gui.exe release-artifacts\ 2>nul
+        copy ..\samples\sample_*.txt release-artifacts\ 2>nul
+        copy ..\samples\tui\sample_*.asm release-artifacts\ 2>nul
+        copy ..\README.md release-artifacts\ 2>nul
+        cd release-artifacts
+        tar -czf ..\8086emu-${{ matrix.os }}.tar.gz *
+      shell: cmd
+
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: 8086emu-${{ matrix.os }}
+        path: build/8086emu-${{ matrix.os }}.tar.gz
+        retention-days: 3
+
+  release:
+    needs: [build-and-test, cross-platform-test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: artifacts/*/8086emu-*.tar.gz
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

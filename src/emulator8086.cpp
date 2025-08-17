@@ -1,21 +1,21 @@
 #include "emulator8086.h"
-#include "instructions/data_transfer.h"
-#include "instructions/arithmetic.h"
-#include "instructions/logical.h"
-#include "instructions/string.h"
-#include "instructions/program_transfer.h"
-#include "instructions/processor_control.h"
-#include "instructions/bit_manipulation.h"
+
+#include <algorithm>
+#include <bitset>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <iomanip>
-#include <algorithm>
 #include <stdexcept>
-#include <bitset>
 
-Emulator8086::Emulator8086(size_t memSize) : memory(memSize, 0)
-{
+#include "instructions/arithmetic.h"
+#include "instructions/bit_manipulation.h"
+#include "instructions/data_transfer.h"
+#include "instructions/logical.h"
+#include "instructions/processor_control.h"
+#include "instructions/program_transfer.h"
+#include "instructions/string.h"
 
+Emulator8086::Emulator8086(size_t memSize) : memory(memSize, 0) {
     dataTransfer = std::make_unique<DataTransferInstructions>(this);
     arithmetic = std::make_unique<ArithmeticInstructions>(this);
     logical = std::make_unique<LogicalInstructions>(this);
@@ -29,259 +29,296 @@ Emulator8086::Emulator8086(size_t memSize) : memory(memSize, 0)
 
 Emulator8086::~Emulator8086() = default;
 
-void Emulator8086::initializeInstructions()
-{
+void Emulator8086::initializeInstructions() {
+    instructions["MOV"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->mov(operands);
+    };
+    instructions["PUSH"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->push(operands);
+    };
+    instructions["POP"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->pop(operands);
+    };
+    instructions["XCHG"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->xchg(operands);
+    };
+    instructions["LEA"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->lea(operands);
+    };
+    instructions["LDS"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->lds(operands);
+    };
+    instructions["LES"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->les(operands);
+    };
+    instructions["LAHF"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->lahf(operands);
+    };
+    instructions["SAHF"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->sahf(operands);
+    };
+    instructions["PUSHF"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->pushf(operands);
+    };
+    instructions["POPF"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->popf(operands);
+    };
+    instructions["PUSHA"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->pusha(operands);
+    };
+    instructions["POPA"] = [this](std::vector<std::string>& operands) {
+        dataTransfer->popa(operands);
+    };
 
-    instructions["MOV"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->mov(operands); };
-    instructions["PUSH"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->push(operands); };
-    instructions["POP"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->pop(operands); };
-    instructions["XCHG"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->xchg(operands); };
-    instructions["LEA"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->lea(operands); };
-    instructions["LDS"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->lds(operands); };
-    instructions["LES"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->les(operands); };
-    instructions["LAHF"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->lahf(operands); };
-    instructions["SAHF"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->sahf(operands); };
-    instructions["PUSHF"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->pushf(operands); };
-    instructions["POPF"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->popf(operands); };
-    instructions["PUSHA"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->pusha(operands); };
-    instructions["POPA"] = [this](std::vector<std::string> &operands)
-    { dataTransfer->popa(operands); };
+    instructions["ADD"] = [this](std::vector<std::string>& operands) { arithmetic->add(operands); };
+    instructions["ADC"] = [this](std::vector<std::string>& operands) { arithmetic->adc(operands); };
+    instructions["INC"] = [this](std::vector<std::string>& operands) { arithmetic->inc(operands); };
+    instructions["AAA"] = [this](std::vector<std::string>& operands) { arithmetic->aaa(operands); };
+    instructions["DAA"] = [this](std::vector<std::string>& operands) { arithmetic->daa(operands); };
+    instructions["SUB"] = [this](std::vector<std::string>& operands) { arithmetic->sub(operands); };
+    instructions["SBB"] = [this](std::vector<std::string>& operands) { arithmetic->sbb(operands); };
+    instructions["DEC"] = [this](std::vector<std::string>& operands) { arithmetic->dec(operands); };
+    instructions["NEG"] = [this](std::vector<std::string>& operands) { arithmetic->neg(operands); };
+    instructions["AAS"] = [this](std::vector<std::string>& operands) { arithmetic->aas(operands); };
+    instructions["DAS"] = [this](std::vector<std::string>& operands) { arithmetic->das(operands); };
+    instructions["MUL"] = [this](std::vector<std::string>& operands) { arithmetic->mul(operands); };
+    instructions["IMUL"] = [this](std::vector<std::string>& operands) {
+        arithmetic->imul(operands);
+    };
+    instructions["AAM"] = [this](std::vector<std::string>& operands) { arithmetic->aam(operands); };
+    instructions["DIV"] = [this](std::vector<std::string>& operands) { arithmetic->div(operands); };
+    instructions["IDIV"] = [this](std::vector<std::string>& operands) {
+        arithmetic->idiv(operands);
+    };
+    instructions["AAD"] = [this](std::vector<std::string>& operands) { arithmetic->aad(operands); };
+    instructions["CBW"] = [this](std::vector<std::string>& operands) { arithmetic->cbw(operands); };
+    instructions["CWD"] = [this](std::vector<std::string>& operands) { arithmetic->cwd(operands); };
 
-    instructions["ADD"] = [this](std::vector<std::string> &operands)
-    { arithmetic->add(operands); };
-    instructions["ADC"] = [this](std::vector<std::string> &operands)
-    { arithmetic->adc(operands); };
-    instructions["INC"] = [this](std::vector<std::string> &operands)
-    { arithmetic->inc(operands); };
-    instructions["AAA"] = [this](std::vector<std::string> &operands)
-    { arithmetic->aaa(operands); };
-    instructions["DAA"] = [this](std::vector<std::string> &operands)
-    { arithmetic->daa(operands); };
-    instructions["SUB"] = [this](std::vector<std::string> &operands)
-    { arithmetic->sub(operands); };
-    instructions["SBB"] = [this](std::vector<std::string> &operands)
-    { arithmetic->sbb(operands); };
-    instructions["DEC"] = [this](std::vector<std::string> &operands)
-    { arithmetic->dec(operands); };
-    instructions["NEG"] = [this](std::vector<std::string> &operands)
-    { arithmetic->neg(operands); };
-    instructions["AAS"] = [this](std::vector<std::string> &operands)
-    { arithmetic->aas(operands); };
-    instructions["DAS"] = [this](std::vector<std::string> &operands)
-    { arithmetic->das(operands); };
-    instructions["MUL"] = [this](std::vector<std::string> &operands)
-    { arithmetic->mul(operands); };
-    instructions["IMUL"] = [this](std::vector<std::string> &operands)
-    { arithmetic->imul(operands); };
-    instructions["AAM"] = [this](std::vector<std::string> &operands)
-    { arithmetic->aam(operands); };
-    instructions["DIV"] = [this](std::vector<std::string> &operands)
-    { arithmetic->div(operands); };
-    instructions["IDIV"] = [this](std::vector<std::string> &operands)
-    { arithmetic->idiv(operands); };
-    instructions["AAD"] = [this](std::vector<std::string> &operands)
-    { arithmetic->aad(operands); };
-    instructions["CBW"] = [this](std::vector<std::string> &operands)
-    { arithmetic->cbw(operands); };
-    instructions["CWD"] = [this](std::vector<std::string> &operands)
-    { arithmetic->cwd(operands); };
+    instructions["AND"] = [this](std::vector<std::string>& operands) { logical->and_op(operands); };
+    instructions["OR"] = [this](std::vector<std::string>& operands) { logical->or_op(operands); };
+    instructions["XOR"] = [this](std::vector<std::string>& operands) { logical->xor_op(operands); };
+    instructions["NOT"] = [this](std::vector<std::string>& operands) { logical->not_op(operands); };
+    instructions["TEST"] = [this](std::vector<std::string>& operands) { logical->test(operands); };
+    instructions["CMP"] = [this](std::vector<std::string>& operands) { logical->cmp(operands); };
 
-    instructions["AND"] = [this](std::vector<std::string> &operands)
-    { logical->and_op(operands); };
-    instructions["OR"] = [this](std::vector<std::string> &operands)
-    { logical->or_op(operands); };
-    instructions["XOR"] = [this](std::vector<std::string> &operands)
-    { logical->xor_op(operands); };
-    instructions["NOT"] = [this](std::vector<std::string> &operands)
-    { logical->not_op(operands); };
-    instructions["TEST"] = [this](std::vector<std::string> &operands)
-    { logical->test(operands); };
-    instructions["CMP"] = [this](std::vector<std::string> &operands)
-    { logical->cmp(operands); };
+    instructions["MOVSB"] = [this](std::vector<std::string>& operands) { string->movsb(operands); };
+    instructions["MOVSW"] = [this](std::vector<std::string>& operands) { string->movsw(operands); };
+    instructions["CMPSB"] = [this](std::vector<std::string>& operands) { string->cmpsb(operands); };
+    instructions["CMPSW"] = [this](std::vector<std::string>& operands) { string->cmpsw(operands); };
+    instructions["SCASB"] = [this](std::vector<std::string>& operands) { string->scasb(operands); };
+    instructions["SCASW"] = [this](std::vector<std::string>& operands) { string->scasw(operands); };
+    instructions["LODSB"] = [this](std::vector<std::string>& operands) { string->lodsb(operands); };
+    instructions["LODSW"] = [this](std::vector<std::string>& operands) { string->lodsw(operands); };
+    instructions["STOSB"] = [this](std::vector<std::string>& operands) { string->stosb(operands); };
+    instructions["STOSW"] = [this](std::vector<std::string>& operands) { string->stosw(operands); };
+    instructions["REP"] = [this](std::vector<std::string>& operands) { string->rep(operands); };
+    instructions["REPE"] = [this](std::vector<std::string>& operands) { string->repe(operands); };
+    instructions["REPNE"] = [this](std::vector<std::string>& operands) { string->repne(operands); };
+    instructions["REPNZ"] = [this](std::vector<std::string>& operands) { string->repnz(operands); };
+    instructions["REPZ"] = [this](std::vector<std::string>& operands) { string->repz(operands); };
+    instructions["XLAT"] = [this](std::vector<std::string>& operands) { string->xlat(operands); };
+    instructions["XLATB"] = [this](std::vector<std::string>& operands) { string->xlatb(operands); };
 
-    instructions["MOVSB"] = [this](std::vector<std::string> &operands)
-    { string->movsb(operands); };
-    instructions["MOVSW"] = [this](std::vector<std::string> &operands)
-    { string->movsw(operands); };
-    instructions["CMPSB"] = [this](std::vector<std::string> &operands)
-    { string->cmpsb(operands); };
-    instructions["CMPSW"] = [this](std::vector<std::string> &operands)
-    { string->cmpsw(operands); };
-    instructions["SCASB"] = [this](std::vector<std::string> &operands)
-    { string->scasb(operands); };
-    instructions["SCASW"] = [this](std::vector<std::string> &operands)
-    { string->scasw(operands); };
-    instructions["LODSB"] = [this](std::vector<std::string> &operands)
-    { string->lodsb(operands); };
-    instructions["LODSW"] = [this](std::vector<std::string> &operands)
-    { string->lodsw(operands); };
-    instructions["STOSB"] = [this](std::vector<std::string> &operands)
-    { string->stosb(operands); };
-    instructions["STOSW"] = [this](std::vector<std::string> &operands)
-    { string->stosw(operands); };
-    instructions["REP"] = [this](std::vector<std::string> &operands)
-    { string->rep(operands); };
-    instructions["REPE"] = [this](std::vector<std::string> &operands)
-    { string->repe(operands); };
-    instructions["REPNE"] = [this](std::vector<std::string> &operands)
-    { string->repne(operands); };
-    instructions["REPNZ"] = [this](std::vector<std::string> &operands)
-    { string->repnz(operands); };
-    instructions["REPZ"] = [this](std::vector<std::string> &operands)
-    { string->repz(operands); };
-    instructions["XLAT"] = [this](std::vector<std::string> &operands)
-    { string->xlat(operands); };
-    instructions["XLATB"] = [this](std::vector<std::string> &operands)
-    { string->xlatb(operands); };
+    instructions["CALL"] = [this](std::vector<std::string>& operands) {
+        programTransfer->call(operands);
+    };
+    instructions["JMP"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jmp(operands);
+    };
+    instructions["RET"] = [this](std::vector<std::string>& operands) {
+        programTransfer->ret(operands);
+    };
+    instructions["RETF"] = [this](std::vector<std::string>& operands) {
+        programTransfer->retf(operands);
+    };
+    instructions["JE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->je(operands);
+    };
+    instructions["JZ"] = [this](std::vector<std::string>& operands) {
+        programTransfer->je(operands);
+    };
+    instructions["JL"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jl(operands);
+    };
+    instructions["JNGE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jl(operands);
+    };
+    instructions["JLE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jle(operands);
+    };
+    instructions["JNG"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jle(operands);
+    };
+    instructions["JB"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jb(operands);
+    };
+    instructions["JNAE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jb(operands);
+    };
+    instructions["JC"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jb(operands);
+    };
+    instructions["JBE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jbe(operands);
+    };
+    instructions["JNA"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jbe(operands);
+    };
+    instructions["JP"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jp(operands);
+    };
+    instructions["JPE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jp(operands);
+    };
+    instructions["JO"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jo(operands);
+    };
+    instructions["JS"] = [this](std::vector<std::string>& operands) {
+        programTransfer->js(operands);
+    };
+    instructions["JNE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jne(operands);
+    };
+    instructions["JNZ"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jne(operands);
+    };
+    instructions["JNL"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jnl(operands);
+    };
+    instructions["JGE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jnl(operands);
+    };
+    instructions["JG"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jg(operands);
+    };
+    instructions["JNLE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jg(operands);
+    };
+    instructions["JNB"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jnb(operands);
+    };
+    instructions["JAE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jnb(operands);
+    };
+    instructions["JNC"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jnb(operands);
+    };
+    instructions["JA"] = [this](std::vector<std::string>& operands) {
+        programTransfer->ja(operands);
+    };
+    instructions["JNBE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->ja(operands);
+    };
+    instructions["JNP"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jnp(operands);
+    };
+    instructions["JPO"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jnp(operands);
+    };
+    instructions["JNO"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jno(operands);
+    };
+    instructions["JNS"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jns(operands);
+    };
+    instructions["LOOP"] = [this](std::vector<std::string>& operands) {
+        programTransfer->loop(operands);
+    };
+    instructions["LOOPZ"] = [this](std::vector<std::string>& operands) {
+        programTransfer->loopz(operands);
+    };
+    instructions["LOOPE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->loopz(operands);
+    };
+    instructions["LOOPNZ"] = [this](std::vector<std::string>& operands) {
+        programTransfer->loopnz(operands);
+    };
+    instructions["LOOPNE"] = [this](std::vector<std::string>& operands) {
+        programTransfer->loopnz(operands);
+    };
+    instructions["JCXZ"] = [this](std::vector<std::string>& operands) {
+        programTransfer->jcxz(operands);
+    };
 
-    instructions["CALL"] = [this](std::vector<std::string> &operands)
-    { programTransfer->call(operands); };
-    instructions["JMP"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jmp(operands); };
-    instructions["RET"] = [this](std::vector<std::string> &operands)
-    { programTransfer->ret(operands); };
-    instructions["RETF"] = [this](std::vector<std::string> &operands)
-    { programTransfer->retf(operands); };
-    instructions["JE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->je(operands); };
-    instructions["JZ"] = [this](std::vector<std::string> &operands)
-    { programTransfer->je(operands); };
-    instructions["JL"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jl(operands); };
-    instructions["JNGE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jl(operands); };
-    instructions["JLE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jle(operands); };
-    instructions["JNG"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jle(operands); };
-    instructions["JB"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jb(operands); };
-    instructions["JNAE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jb(operands); };
-    instructions["JC"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jb(operands); };
-    instructions["JBE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jbe(operands); };
-    instructions["JNA"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jbe(operands); };
-    instructions["JP"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jp(operands); };
-    instructions["JPE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jp(operands); };
-    instructions["JO"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jo(operands); };
-    instructions["JS"] = [this](std::vector<std::string> &operands)
-    { programTransfer->js(operands); };
-    instructions["JNE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jne(operands); };
-    instructions["JNZ"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jne(operands); };
-    instructions["JNL"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jnl(operands); };
-    instructions["JGE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jnl(operands); };
-    instructions["JG"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jg(operands); };
-    instructions["JNLE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jg(operands); };
-    instructions["JNB"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jnb(operands); };
-    instructions["JAE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jnb(operands); };
-    instructions["JNC"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jnb(operands); };
-    instructions["JA"] = [this](std::vector<std::string> &operands)
-    { programTransfer->ja(operands); };
-    instructions["JNBE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->ja(operands); };
-    instructions["JNP"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jnp(operands); };
-    instructions["JPO"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jnp(operands); };
-    instructions["JNO"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jno(operands); };
-    instructions["JNS"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jns(operands); };
-    instructions["LOOP"] = [this](std::vector<std::string> &operands)
-    { programTransfer->loop(operands); };
-    instructions["LOOPZ"] = [this](std::vector<std::string> &operands)
-    { programTransfer->loopz(operands); };
-    instructions["LOOPE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->loopz(operands); };
-    instructions["LOOPNZ"] = [this](std::vector<std::string> &operands)
-    { programTransfer->loopnz(operands); };
-    instructions["LOOPNE"] = [this](std::vector<std::string> &operands)
-    { programTransfer->loopnz(operands); };
-    instructions["JCXZ"] = [this](std::vector<std::string> &operands)
-    { programTransfer->jcxz(operands); };
+    instructions["CLC"] = [this](std::vector<std::string>& operands) {
+        processorControl->clc(operands);
+    };
+    instructions["CMC"] = [this](std::vector<std::string>& operands) {
+        processorControl->cmc(operands);
+    };
+    instructions["STC"] = [this](std::vector<std::string>& operands) {
+        processorControl->stc(operands);
+    };
+    instructions["CLD"] = [this](std::vector<std::string>& operands) {
+        processorControl->cld(operands);
+    };
+    instructions["STD"] = [this](std::vector<std::string>& operands) {
+        processorControl->std(operands);
+    };
+    instructions["CLI"] = [this](std::vector<std::string>& operands) {
+        processorControl->cli(operands);
+    };
+    instructions["STI"] = [this](std::vector<std::string>& operands) {
+        processorControl->sti(operands);
+    };
+    instructions["HLT"] = [this](std::vector<std::string>& operands) {
+        processorControl->hlt(operands);
+    };
+    instructions["WAIT"] = [this](std::vector<std::string>& operands) {
+        processorControl->wait(operands);
+    };
+    instructions["ESC"] = [this](std::vector<std::string>& operands) {
+        processorControl->esc(operands);
+    };
+    instructions["LOCK"] = [this](std::vector<std::string>& operands) {
+        processorControl->lock(operands);
+    };
+    instructions["NOP"] = [this](std::vector<std::string>& operands) {
+        processorControl->nop(operands);
+    };
+    instructions["INT"] = [this](std::vector<std::string>& operands) {
+        processorControl->int_op(operands);
+    };
+    instructions["INTO"] = [this](std::vector<std::string>& operands) {
+        processorControl->into(operands);
+    };
+    instructions["IRET"] = [this](std::vector<std::string>& operands) {
+        processorControl->iret(operands);
+    };
+    instructions["IN"] = [this](std::vector<std::string>& operands) {
+        processorControl->in_op(operands);
+    };
+    instructions["OUT"] = [this](std::vector<std::string>& operands) {
+        processorControl->out(operands);
+    };
 
-    instructions["CLC"] = [this](std::vector<std::string> &operands)
-    { processorControl->clc(operands); };
-    instructions["CMC"] = [this](std::vector<std::string> &operands)
-    { processorControl->cmc(operands); };
-    instructions["STC"] = [this](std::vector<std::string> &operands)
-    { processorControl->stc(operands); };
-    instructions["CLD"] = [this](std::vector<std::string> &operands)
-    { processorControl->cld(operands); };
-    instructions["STD"] = [this](std::vector<std::string> &operands)
-    { processorControl->std(operands); };
-    instructions["CLI"] = [this](std::vector<std::string> &operands)
-    { processorControl->cli(operands); };
-    instructions["STI"] = [this](std::vector<std::string> &operands)
-    { processorControl->sti(operands); };
-    instructions["HLT"] = [this](std::vector<std::string> &operands)
-    { processorControl->hlt(operands); };
-    instructions["WAIT"] = [this](std::vector<std::string> &operands)
-    { processorControl->wait(operands); };
-    instructions["ESC"] = [this](std::vector<std::string> &operands)
-    { processorControl->esc(operands); };
-    instructions["LOCK"] = [this](std::vector<std::string> &operands)
-    { processorControl->lock(operands); };
-    instructions["NOP"] = [this](std::vector<std::string> &operands)
-    { processorControl->nop(operands); };
-    instructions["INT"] = [this](std::vector<std::string> &operands)
-    { processorControl->int_op(operands); };
-    instructions["INTO"] = [this](std::vector<std::string> &operands)
-    { processorControl->into(operands); };
-    instructions["IRET"] = [this](std::vector<std::string> &operands)
-    { processorControl->iret(operands); };
-    instructions["IN"] = [this](std::vector<std::string> &operands)
-    { processorControl->in_op(operands); };
-    instructions["OUT"] = [this](std::vector<std::string> &operands)
-    { processorControl->out(operands); };
-
-    instructions["RCL"] = [this](std::vector<std::string> &operands)
-    { bitManipulation->rcl(operands); };
-    instructions["RCR"] = [this](std::vector<std::string> &operands)
-    { bitManipulation->rcr(operands); };
-    instructions["ROL"] = [this](std::vector<std::string> &operands)
-    { bitManipulation->rol(operands); };
-    instructions["ROR"] = [this](std::vector<std::string> &operands)
-    { bitManipulation->ror(operands); };
-    instructions["SAL"] = [this](std::vector<std::string> &operands)
-    { bitManipulation->sal(operands); };
-    instructions["SAR"] = [this](std::vector<std::string> &operands)
-    { bitManipulation->sar(operands); };
-    instructions["SHL"] = [this](std::vector<std::string> &operands)
-    { bitManipulation->shl(operands); };
-    instructions["SHR"] = [this](std::vector<std::string> &operands)
-    { bitManipulation->shr(operands); };
+    instructions["RCL"] = [this](std::vector<std::string>& operands) {
+        bitManipulation->rcl(operands);
+    };
+    instructions["RCR"] = [this](std::vector<std::string>& operands) {
+        bitManipulation->rcr(operands);
+    };
+    instructions["ROL"] = [this](std::vector<std::string>& operands) {
+        bitManipulation->rol(operands);
+    };
+    instructions["ROR"] = [this](std::vector<std::string>& operands) {
+        bitManipulation->ror(operands);
+    };
+    instructions["SAL"] = [this](std::vector<std::string>& operands) {
+        bitManipulation->sal(operands);
+    };
+    instructions["SAR"] = [this](std::vector<std::string>& operands) {
+        bitManipulation->sar(operands);
+    };
+    instructions["SHL"] = [this](std::vector<std::string>& operands) {
+        bitManipulation->shl(operands);
+    };
+    instructions["SHR"] = [this](std::vector<std::string>& operands) {
+        bitManipulation->shr(operands);
+    };
 }
 
-uint16_t &Emulator8086::getRegister(const std::string &reg)
-{
+uint16_t& Emulator8086::getRegister(const std::string& reg) {
     std::string upperReg = reg;
     std::transform(upperReg.begin(), upperReg.end(), upperReg.begin(), ::toupper);
     if (upperReg == "AX")
@@ -303,8 +340,7 @@ uint16_t &Emulator8086::getRegister(const std::string &reg)
     throw std::runtime_error("Invalid 16-bit register: " + reg);
 }
 
-uint8_t &Emulator8086::getRegister8(const std::string &reg)
-{
+uint8_t& Emulator8086::getRegister8(const std::string& reg) {
     std::string upperReg = reg;
     std::transform(upperReg.begin(), upperReg.end(), upperReg.begin(), ::toupper);
     if (upperReg == "AL")
@@ -326,86 +362,63 @@ uint8_t &Emulator8086::getRegister8(const std::string &reg)
     throw std::runtime_error("Invalid 8-bit register: " + reg);
 }
 
-bool Emulator8086::is8BitRegister(const std::string &reg)
-{
+bool Emulator8086::is8BitRegister(const std::string& reg) {
     std::string upperReg = reg;
     std::transform(upperReg.begin(), upperReg.end(), upperReg.begin(), ::toupper);
     return (upperReg == "AL" || upperReg == "AH" || upperReg == "BL" || upperReg == "BH" ||
             upperReg == "CL" || upperReg == "CH" || upperReg == "DL" || upperReg == "DH");
 }
 
-bool Emulator8086::isMemoryOperand(const std::string &operand)
-{
+bool Emulator8086::isMemoryOperand(const std::string& operand) {
     return operand[0] == '[' && operand.back() == ']';
 }
 
-MemoryOperand Emulator8086::parseMemoryOperand(const std::string &operand)
-{
+MemoryOperand Emulator8086::parseMemoryOperand(const std::string& operand) {
     MemoryOperand result;
     std::string inner = operand.substr(1, operand.length() - 2);
     std::vector<std::string> parts;
     std::string current;
     bool negative = false;
 
-    for (size_t i = 0; i < inner.length(); i++)
-    {
-        if (inner[i] == '+' || inner[i] == '-')
-        {
-            if (!current.empty())
-            {
+    for (size_t i = 0; i < inner.length(); i++) {
+        if (inner[i] == '+' || inner[i] == '-') {
+            if (!current.empty()) {
                 parts.push_back(current);
                 current.clear();
             }
             if (inner[i] == '-')
                 negative = true;
-        }
-        else
-        {
+        } else {
             current += inner[i];
         }
     }
     if (!current.empty())
         parts.push_back(current);
 
-    for (const auto &part : parts)
-    {
+    for (const auto& part : parts) {
         std::string upperPart = part;
         std::transform(upperPart.begin(), upperPart.end(), upperPart.begin(), ::toupper);
-        if (upperPart == "BX")
-        {
+        if (upperPart == "BX") {
             result.hasBase = true;
             result.base = regs.BX.x;
-        }
-        else if (upperPart == "BP")
-        {
+        } else if (upperPart == "BP") {
             result.hasBase = true;
             result.base = regs.BP;
-        }
-        else if (upperPart == "SI")
-        {
+        } else if (upperPart == "SI") {
             result.hasIndex = true;
             result.index = regs.SI;
-        }
-        else if (upperPart == "DI")
-        {
+        } else if (upperPart == "DI") {
             result.hasIndex = true;
             result.index = regs.DI;
-        }
-        else
-        {
+        } else {
             result.hasDisplacement = true;
-            try
-            {
+            try {
                 result.displacement = std::stoi(part, nullptr, 16);
                 if (negative)
                     result.displacement = -result.displacement;
-            }
-            catch (const std::invalid_argument &e)
-            {
+            } catch (const std::invalid_argument& e) {
                 throw std::runtime_error("Invalid displacement value: " + part);
-            }
-            catch (const std::out_of_range &e)
-            {
+            } catch (const std::out_of_range& e) {
                 throw std::runtime_error("Displacement value out of range: " + part);
             }
         }
@@ -413,8 +426,7 @@ MemoryOperand Emulator8086::parseMemoryOperand(const std::string &operand)
     return result;
 }
 
-uint16_t Emulator8086::calculateEffectiveAddress(const MemoryOperand &memOp)
-{
+uint16_t Emulator8086::calculateEffectiveAddress(const MemoryOperand& memOp) {
     uint16_t ea = 0;
     if (memOp.hasBase)
         ea += memOp.base;
@@ -425,123 +437,89 @@ uint16_t Emulator8086::calculateEffectiveAddress(const MemoryOperand &memOp)
     return ea;
 }
 
-uint16_t Emulator8086::readMemoryWord(uint16_t address)
-{
+uint16_t Emulator8086::readMemoryWord(uint16_t address) {
     if (static_cast<size_t>(address) + 1 >= memory.size())
         throw std::out_of_range("Memory address out of range");
     return (memory[address + 1] << 8) | memory[address];
 }
 
-void Emulator8086::writeMemoryWord(uint16_t address, uint16_t value)
-{
+void Emulator8086::writeMemoryWord(uint16_t address, uint16_t value) {
     if (static_cast<size_t>(address) + 1 >= memory.size())
         throw std::out_of_range("Memory address out of range");
     memory[address] = value & 0xFF;
     memory[address + 1] = (value >> 8) & 0xFF;
 }
 
-uint8_t Emulator8086::readMemoryByte(uint16_t address)
-{
+uint8_t Emulator8086::readMemoryByte(uint16_t address) {
     if (static_cast<size_t>(address) >= memory.size())
         throw std::out_of_range("Memory address out of range");
     return memory[address];
 }
 
-void Emulator8086::writeMemoryByte(uint16_t address, uint8_t value)
-{
+void Emulator8086::writeMemoryByte(uint16_t address, uint8_t value) {
     if (static_cast<size_t>(address) >= memory.size())
         throw std::out_of_range("Memory address out of range");
     memory[address] = value;
 }
 
-uint16_t Emulator8086::getValue(const std::string &operand)
-{
-    if (isMemoryOperand(operand))
-    {
+uint16_t Emulator8086::getValue(const std::string& operand) {
+    if (isMemoryOperand(operand)) {
         MemoryOperand memOp = parseMemoryOperand(operand);
         uint16_t address = calculateEffectiveAddress(memOp);
         return readMemoryWord(address);
-    }
-    else if (operand.back() == 'h')
-    {
+    } else if (operand.back() == 'h') {
         std::string hexValue = operand.substr(0, operand.size() - 1);
         return std::stoul(hexValue, nullptr, 16);
-    }
-    else if (operand[0] >= '0' && operand[0] <= '9')
-    {
-        try
-        {
+    } else if (operand[0] >= '0' && operand[0] <= '9') {
+        try {
             return std::stoi(operand);
-        }
-        catch (const std::invalid_argument &e)
-        {
+        } catch (const std::invalid_argument& e) {
             throw std::runtime_error("Invalid immediate value: " + operand);
-        }
-        catch (const std::out_of_range &e)
-        {
+        } catch (const std::out_of_range& e) {
             throw std::runtime_error("Immediate value out of range: " + operand);
         }
-    }
-    else if (is8BitRegister(operand))
-    {
+    } else if (is8BitRegister(operand)) {
         throw std::runtime_error("Cannot get 16-bit value from 8-bit register");
-    }
-    else
-    {
+    } else {
         return getRegister(operand);
     }
 }
 
-uint8_t Emulator8086::getValue8(const std::string &operand)
-{
-    if (isMemoryOperand(operand))
-    {
+uint8_t Emulator8086::getValue8(const std::string& operand) {
+    if (isMemoryOperand(operand)) {
         MemoryOperand memOp = parseMemoryOperand(operand);
         uint16_t address = calculateEffectiveAddress(memOp);
         return readMemoryByte(address);
-    }
-    else if (operand.back() == 'h')
-    {
+    } else if (operand.back() == 'h') {
         std::string hexValue = operand.substr(0, operand.size() - 1);
         return std::stoul(hexValue, nullptr, 16) & 0xFF;
-    }
-    else if (operand[0] >= '0' && operand[0] <= '9')
-    {
-        try
-        {
+    } else if (operand[0] >= '0' && operand[0] <= '9') {
+        try {
             return std::stoi(operand) & 0xFF;
-        }
-        catch (const std::invalid_argument &e)
-        {
+        } catch (const std::invalid_argument& e) {
             throw std::runtime_error("Invalid immediate value: " + operand);
-        }
-        catch (const std::out_of_range &e)
-        {
+        } catch (const std::out_of_range& e) {
             throw std::runtime_error("Immediate value out of range: " + operand);
         }
-    }
-    else if (is8BitRegister(operand))
-    {
+    } else if (is8BitRegister(operand)) {
         return getRegister8(operand);
-    }
-    else
-    {
+    } else {
         throw std::runtime_error("Invalid operand for 8-bit value");
     }
 }
 
-void Emulator8086::updateFlags(uint32_t result, bool isByte, bool checkCarry)
-{
+void Emulator8086::updateFlags(uint32_t result, bool isByte, bool checkCarry) {
     uint16_t mask = isByte ? 0xFF : 0xFFFF;
     uint16_t res = result & mask;
 
     regs.FLAGS = (res == 0) ? (regs.FLAGS | Registers::ZF) : (regs.FLAGS & ~Registers::ZF);
 
-    regs.FLAGS = (isByte ? (res & 0x80) : (res & 0x8000)) ? (regs.FLAGS | Registers::SF) : (regs.FLAGS & ~Registers::SF);
+    regs.FLAGS = (isByte ? (res & 0x80) : (res & 0x8000)) ? (regs.FLAGS | Registers::SF)
+                                                          : (regs.FLAGS & ~Registers::SF);
 
-    if (checkCarry)
-    {
-        regs.FLAGS = (isByte ? (result > 0xFF) : (result > 0xFFFF)) ? (regs.FLAGS | Registers::CF) : (regs.FLAGS & ~Registers::CF);
+    if (checkCarry) {
+        regs.FLAGS = (isByte ? (result > 0xFF) : (result > 0xFFFF)) ? (regs.FLAGS | Registers::CF)
+                                                                    : (regs.FLAGS & ~Registers::CF);
     }
 
     uint8_t leastByte = res & 0xFF;
@@ -551,8 +529,7 @@ void Emulator8086::updateFlags(uint32_t result, bool isByte, bool checkCarry)
     regs.FLAGS = (parity == 0) ? (regs.FLAGS | Registers::PF) : (regs.FLAGS & ~Registers::PF);
 }
 
-void Emulator8086::executeInstruction(const std::string &instruction)
-{
+void Emulator8086::executeInstruction(const std::string& instruction) {
     std::istringstream iss(instruction);
     std::string mnemonic;
     iss >> mnemonic;
@@ -561,45 +538,41 @@ void Emulator8086::executeInstruction(const std::string &instruction)
 
     std::vector<std::string> operands;
     std::string operand;
-    while (std::getline(iss, operand, ','))
-    {
-        operand.erase(operand.begin(), std::find_if(operand.begin(), operand.end(), [](int ch)
-                                                    { return !std::isspace(ch); }));
-        operand.erase(std::find_if(operand.rbegin(), operand.rend(), [](int ch)
-                                   { return !std::isspace(ch); })
-                          .base(),
-                      operand.end());
+    while (std::getline(iss, operand, ',')) {
+        operand.erase(operand.begin(), std::find_if(operand.begin(), operand.end(), [](int ch) {
+                          return !std::isspace(ch);
+                      }));
+        operand.erase(
+            std::find_if(operand.rbegin(), operand.rend(), [](int ch) { return !std::isspace(ch); })
+                .base(),
+            operand.end());
         if (!operand.empty())
             operands.push_back(operand);
     }
 
     auto it = instructions.find(mnemonic);
-    if (it != instructions.end())
-    {
+    if (it != instructions.end()) {
         it->second(operands);
-    }
-    else
-    {
+    } else {
         throw std::runtime_error("Unknown instruction: " + mnemonic);
     }
 }
 
-void Emulator8086::loadProgram(const std::vector<std::string> &lines)
-{
+void Emulator8086::loadProgram(const std::vector<std::string>& lines) {
     program.clear();
     labels.clear();
     regs.IP = 0;
 
-    for (size_t i = 0; i < lines.size(); ++i)
-    {
+    for (size_t i = 0; i < lines.size(); ++i) {
         std::string line = lines[i];
 
-        line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](int ch)
-                                              { return !std::isspace(ch); }));
-        line.erase(std::find_if(line.rbegin(), line.rend(), [](int ch)
-                                { return !std::isspace(ch); })
-                       .base(),
-                   line.end());
+        line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](int ch) {
+                       return !std::isspace(ch);
+                   }));
+        line.erase(
+            std::find_if(line.rbegin(), line.rend(), [](int ch) { return !std::isspace(ch); })
+                .base(),
+            line.end());
         if (line.empty())
             continue;
 
@@ -608,31 +581,24 @@ void Emulator8086::loadProgram(const std::vector<std::string> &lines)
             line = line.substr(0, scPos);
         if (line.empty())
             continue;
-        if (line.back() == ':')
-        {
+        if (line.back() == ':') {
             std::string label = line.substr(0, line.size() - 1);
             std::transform(label.begin(), label.end(), label.begin(), ::toupper);
             labels[label] = program.size();
-        }
-        else
-        {
+        } else {
             program.push_back(line);
         }
     }
 }
 
-bool Emulator8086::step()
-{
+bool Emulator8086::step() {
     if (regs.IP >= program.size())
         return false;
     std::string instr = program[regs.IP];
     size_t oldIP = regs.IP;
-    try
-    {
+    try {
         executeInstruction(instr);
-    }
-    catch (const std::exception &e)
-    {
+    } catch (const std::exception& e) {
         std::cerr << "Execution error at IP=" << oldIP << ": " << e.what() << "\n";
     }
 
@@ -641,23 +607,24 @@ bool Emulator8086::step()
     return regs.IP < program.size();
 }
 
-void Emulator8086::reset()
-{
+void Emulator8086::reset() {
     regs = Registers();
     std::fill(memory.begin(), memory.end(), 0);
 }
 
-void Emulator8086::displayRegisters()
-{
-    std::cout << std::hex << std::uppercase << std::setfill('0')
-              << "AX=" << std::setw(4) << regs.AX.x << " (AH=" << std::setw(2) << static_cast<uint16_t>(regs.AX.bytes.h)
+void Emulator8086::displayRegisters() {
+    std::cout << std::hex << std::uppercase << std::setfill('0') << "AX=" << std::setw(4)
+              << regs.AX.x << " (AH=" << std::setw(2) << static_cast<uint16_t>(regs.AX.bytes.h)
               << ", AL=" << std::setw(2) << static_cast<uint16_t>(regs.AX.bytes.l) << ")\n"
-              << "BX=" << std::setw(4) << regs.BX.x << " (BH=" << std::setw(2) << static_cast<uint16_t>(regs.BX.bytes.h)
-              << ", BL=" << std::setw(2) << static_cast<uint16_t>(regs.BX.bytes.l) << ")\n"
-              << "CX=" << std::setw(4) << regs.CX.x << " (CH=" << std::setw(2) << static_cast<uint16_t>(regs.CX.bytes.h)
-              << ", CL=" << std::setw(2) << static_cast<uint16_t>(regs.CX.bytes.l) << ")\n"
-              << "DX=" << std::setw(4) << regs.DX.x << " (DH=" << std::setw(2) << static_cast<uint16_t>(regs.DX.bytes.h)
-              << ", DL=" << std::setw(2) << static_cast<uint16_t>(regs.DX.bytes.l) << ")\n"
+              << "BX=" << std::setw(4) << regs.BX.x << " (BH=" << std::setw(2)
+              << static_cast<uint16_t>(regs.BX.bytes.h) << ", BL=" << std::setw(2)
+              << static_cast<uint16_t>(regs.BX.bytes.l) << ")\n"
+              << "CX=" << std::setw(4) << regs.CX.x << " (CH=" << std::setw(2)
+              << static_cast<uint16_t>(regs.CX.bytes.h) << ", CL=" << std::setw(2)
+              << static_cast<uint16_t>(regs.CX.bytes.l) << ")\n"
+              << "DX=" << std::setw(4) << regs.DX.x << " (DH=" << std::setw(2)
+              << static_cast<uint16_t>(regs.DX.bytes.h) << ", DL=" << std::setw(2)
+              << static_cast<uint16_t>(regs.DX.bytes.l) << ")\n"
               << "SI=" << std::setw(4) << regs.SI << "  "
               << "DI=" << std::setw(4) << regs.DI << "  "
               << "BP=" << std::setw(4) << regs.BP << "  "
@@ -667,8 +634,8 @@ void Emulator8086::displayRegisters()
               << "ES=" << std::setw(4) << regs.ES << "  "
               << "SS=" << std::setw(4) << regs.SS << "\n"
               << "IP=" << std::setw(4) << regs.IP << "  "
-              << "FLAGS=" << std::setw(4) << regs.FLAGS
-              << " [" << (regs.FLAGS & Registers::OF ? "O" : "-")
+              << "FLAGS=" << std::setw(4) << regs.FLAGS << " ["
+              << (regs.FLAGS & Registers::OF ? "O" : "-")
               << (regs.FLAGS & Registers::DF ? "D" : "-")
               << (regs.FLAGS & Registers::IF ? "I" : "-")
               << (regs.FLAGS & Registers::TF ? "T" : "-")
@@ -679,28 +646,22 @@ void Emulator8086::displayRegisters()
               << (regs.FLAGS & Registers::CF ? "C" : "-") << "]\n";
 }
 
-void Emulator8086::displayStack()
-{
+void Emulator8086::displayStack() {
     std::cout << "\nStack contents:\n";
-    if (regs.SP == 0xFFFE)
-    {
+    if (regs.SP == 0xFFFE) {
         std::cout << "Stack is empty\n";
         return;
     }
-    for (uint16_t i = regs.SP; i < 0xFFFE; i += 2)
-    {
-        std::cout << std::hex << std::uppercase << std::setfill('0')
-                  << "SP+" << std::setw(4) << (i - regs.SP) << ": "
-                  << std::setw(4) << readMemoryWord(i) << '\n';
+    for (uint16_t i = regs.SP; i < 0xFFFE; i += 2) {
+        std::cout << std::hex << std::uppercase << std::setfill('0') << "SP+" << std::setw(4)
+                  << (i - regs.SP) << ": " << std::setw(4) << readMemoryWord(i) << '\n';
     }
 }
 
-void Emulator8086::displayMemory(uint16_t address, uint16_t count)
-{
+void Emulator8086::displayMemory(uint16_t address, uint16_t count) {
     std::cout << "\nMemory dump from " << std::hex << std::uppercase << std::setfill('0')
               << std::setw(4) << address << ":\n";
-    for (uint16_t i = 0; i < count; i++)
-    {
+    for (uint16_t i = 0; i < count; i++) {
         if (i % 16 == 0)
             std::cout << std::setw(4) << (address + i) << ": ";
         std::cout << std::setw(2) << static_cast<int>(readMemoryByte(address + i)) << ' ';
@@ -709,8 +670,7 @@ void Emulator8086::displayMemory(uint16_t address, uint16_t count)
     }
 }
 
-void Emulator8086::displayHelp()
-{
+void Emulator8086::displayHelp() {
     std::cout << "8086 Emulator - Supported Instructions:\n";
     std::cout << "----------------------------------------\n";
 
@@ -844,24 +804,19 @@ void Emulator8086::displayHelp()
     std::cout << "Notes: Use 'h' suffix for hex (e.g., 10h), memory as [BX+SI+offset]\n";
 }
 
-size_t Emulator8086::getLabelAddress(const std::string &label)
-{
+size_t Emulator8086::getLabelAddress(const std::string& label) {
     std::string upperLabel = label;
     std::transform(upperLabel.begin(), upperLabel.end(), upperLabel.begin(), ::toupper);
 
     auto it = labels.find(upperLabel);
-    if (it != labels.end())
-    {
+    if (it != labels.end()) {
         return it->second;
-    }
-    else
-    {
+    } else {
         throw std::runtime_error("Unknown label: " + label);
     }
 }
 
-bool Emulator8086::hasLabel(const std::string &label)
-{
+bool Emulator8086::hasLabel(const std::string& label) {
     std::string upperLabel = label;
     std::transform(upperLabel.begin(), upperLabel.end(), upperLabel.begin(), ::toupper);
     return labels.find(upperLabel) != labels.end();

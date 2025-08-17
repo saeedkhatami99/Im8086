@@ -1,26 +1,27 @@
 #ifndef IM8086_TUI_H
 #define IM8086_TUI_H
 
-#include <vector>
-#include <string>
-#include <set>
 #include <cstdint>
+#include <set>
+#include <string>
+#include <vector>
 
 class Emulator8086;
 
 class EmulatorTUI {
-public:
+  public:
     explicit EmulatorTUI(Emulator8086* emu);
     ~EmulatorTUI();
     void run();
-private:
+
+  private:
     Emulator8086* emulator;
-    bool running = false; 
+    bool running = false;
     bool quit = false;
-    int memWindowStart = 0; 
-    int memWindowSize = 128; 
-    std::set<size_t> breakpoints; 
-    int selectedPane = 0; 
+    int memWindowStart = 0;
+    int memWindowSize = 128;
+    std::set<size_t> breakpoints;
+    int selectedPane = 0;
     bool showLabels = false;
 
     void draw();

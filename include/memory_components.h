@@ -3,8 +3,7 @@
 
 #include <cstdint>
 
-struct MemoryAddress
-{
+struct MemoryAddress {
     uint16_t segment;
     uint16_t offset;
     bool hasSegmentOverride;
@@ -12,8 +11,7 @@ struct MemoryAddress
     MemoryAddress();
 };
 
-struct MemoryOperand
-{
+struct MemoryOperand {
     uint16_t base;
     uint16_t index;
     int16_t displacement;
