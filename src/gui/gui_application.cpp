@@ -1295,14 +1295,14 @@ void GUIApplication::renderStackWindow() {
             ImGui::TableHeadersRow();
 
             for (int i = -stackViewSize; i <= stackViewSize; i += 2) {
-                uint16_t addr = sp + i;
+                uint16_t addr = static_cast<uint16_t>(static_cast<int>(sp) + i);
                 uint32_t physAddr = (ss << 4) + addr;
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
 
                 if (i == 0) {
-                    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
                     ImGui::Text("0x%05X", physAddr);
                     ImGui::PopStyleColor();
                 } else {
@@ -1311,7 +1311,7 @@ void GUIApplication::renderStackWindow() {
 
                 ImGui::TableNextColumn();
                 if (i == 0) {
-                    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
                     ImGui::Text("SP+%d", i);
                     ImGui::PopStyleColor();
                 } else {
@@ -1322,7 +1322,7 @@ void GUIApplication::renderStackWindow() {
                 try {
                     uint16_t value = emulator->readMemoryWord(addr);
                     if (i == 0) {
-                        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
                         ImGui::Text("0x%04X", value);
                         ImGui::PopStyleColor();
                     } else {
