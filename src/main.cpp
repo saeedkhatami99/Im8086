@@ -58,6 +58,7 @@ int main(int argc, char **argv)
         std::cout << "  " << argv[0] << "                    - Interactive command line mode\n";
 #ifdef WITH_GUI
         std::cout << "  " << argv[0] << " --gui             - Modern GUI mode with SDL2/ImGui\n";
+        std::cout << "  " << argv[0] << " --gui <file>      - GUI mode with assembly file loaded\n";
 #endif
 #ifdef WITH_TUI
         std::cout << "  " << argv[0] << " --ide             - IDE mode with integrated editor and debugger\n";
