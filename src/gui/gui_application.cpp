@@ -8,6 +8,16 @@
 #include <sstream>
 #include <stdexcept>
 
+#ifdef _WIN32
+#include <windows.h>
+#include <commdlg.h>
+#include <io.h>
+#define popen _popen
+#define pclose _pclose
+#else
+#include <unistd.h>
+#endif
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <imgui.h>
@@ -15,6 +25,75 @@
 #include <imgui_impl_sdl2.h>
 
 #include "emulator8086.h"
+
+// Cross-platform helper functions
+namespace {
+    // Cross-platform environment variable functions
+    bool setEnvironmentVariable(const char* name, const char* value) {
+#ifdef _WIN32
+        return SetEnvironmentVariableA(name, value) != 0;
+#else
+        return setenv(name, value, 1) == 0;
+#endif
+    }
+
+    std::string getEnvironmentVariable(const char* name) {
+#ifdef _WIN32
+        char buffer[1024];
+        DWORD result = GetEnvironmentVariableA(name, buffer, sizeof(buffer));
+        if (result > 0 && result < sizeof(buffer)) {
+            return std::string(buffer);
+        }
+        return "";
+#else
+        const char* value = std::getenv(name);
+        return value ? std::string(value) : "";
+#endif
+    }
+
+    // Cross-platform command execution
+    std::string executeCommand(const std::string& command) {
+#ifdef _WIN32
+        // On Windows, we'll disable file dialogs for now as they need different implementation
+        return "";
+#else
+        FILE* pipe = popen(command.c_str(), "r");
+        if (!pipe) {
+            return "";
+        }
+
+        char buffer[1024];
+        std::string result;
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            result += buffer;
+        }
+        
+        pclose(pipe);
+        
+        if (!result.empty() && result.back() == '\n') {
+            result.pop_back();
+        }
+        
+        return result;
+#endif
+    }
+
+    bool commandExists(const std::string& command) {
+#ifdef _WIN32
+        return false; // Disable on Windows for now
+#else
+        FILE* pipe = popen((command + " 2>/dev/null").c_str(), "r");
+        if (!pipe) {
+            return false;
+        }
+        
+        char buffer[128];
+        bool found = fgets(buffer, sizeof(buffer), pipe) != nullptr;
+        pclose(pipe);
+        return found;
+#endif
+    }
+}
 
 GUIApplication::GUIApplication() {
     assemblyEditorCharBuffer[0] = '\0';
@@ -27,8 +106,8 @@ bool GUIApplication::initialize(int width, int height, const std::string& title)
         return true;
     }
 
-    const char* software_env = std::getenv("LIBGL_ALWAYS_SOFTWARE");
-    bool force_software = (software_env && std::string(software_env) == "1");
+    const std::string software_env = getEnvironmentVariable("LIBGL_ALWAYS_SOFTWARE");
+    bool force_software = (software_env == "1");
 
     if (force_software) {
         std::cout << "Software rendering requested via LIBGL_ALWAYS_SOFTWARE" << std::endl;
@@ -56,7 +135,7 @@ bool GUIApplication::initialize(int width, int height, const std::string& title)
                 }
                 SDL_Quit();
 
-                setenv("LIBGL_ALWAYS_SOFTWARE", "1", 1);
+                setEnvironmentVariable("LIBGL_ALWAYS_SOFTWARE", "1");
 
                 if (!initSDL(width, height, title)) {
                     throw std::runtime_error("Failed to initialize SDL2 with software rendering");
@@ -349,7 +428,7 @@ bool GUIApplication::initImGui() {
         std::cerr << "Failed to initialize ImGui OpenGL3 backend with " << glsl_version
                   << std::endl;
 
-        if (glsl_version != "#version 120") {
+        if (std::strcmp(glsl_version, "#version 120") != 0) {
             std::cout << "Trying fallback to GLSL 120..." << std::endl;
             if (!ImGui_ImplOpenGL3_Init("#version 120")) {
                 std::cerr << "Failed to initialize ImGui OpenGL3 backend with fallback\n";
@@ -1360,70 +1439,51 @@ void GUIApplication::renderFileDialog() {
 }
 
 std::string GUIApplication::openFileDialog(const std::string& title, const std::string& filters) {
+#ifdef _WIN32
+    // On Windows, use native file dialog
+    OPENFILENAMEA ofn;
+    char szFile[260] = {0};
+    
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "Assembly Files\0*.asm;*.as;*.s\0All Files\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+    
+    if (GetOpenFileNameA(&ofn)) {
+        return std::string(szFile);
+    }
+    return "";
+#else
+    // On Unix-like systems, try zenity first, then kdialog
     std::string command = "zenity --file-selection --title=\"" + title + "\"";
     if (!filters.empty()) {
         command += " --file-filter='Assembly files (" + filters + ")|" + filters + "'";
         command += " --file-filter='All files|*'";
     }
 
-    FILE* pipe = popen(command.c_str(), "r");
-    if (pipe) {
-        char buffer[1024];
-        std::string result;
-        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-            result += buffer;
-        }
-        int status = pclose(pipe);
-
-        if (!result.empty() && result.back() == '\n') {
-            result.pop_back();
-        }
-
-        if (status == 0 && !result.empty()) {
-            return result;
-        }
+    std::string result = executeCommand(command);
+    if (!result.empty()) {
+        return result;
     }
 
     command = "kdialog --getopenfilename . \"" + filters + "|Assembly files\"";
-    pipe = popen(command.c_str(), "r");
-    if (pipe) {
-        char buffer[1024];
-        std::string result;
-        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-            result += buffer;
-        }
-        int status = pclose(pipe);
-
-        if (!result.empty() && result.back() == '\n') {
-            result.pop_back();
-        }
-
-        if (status == 0 && !result.empty()) {
-            return result;
-        }
-    }
-
-    return "";
+    result = executeCommand(command);
+    return result;
+#endif
 }
 
 bool GUIApplication::isFileDialogAvailable() {
-    FILE* pipe = popen("which zenity 2>/dev/null", "r");
-    if (pipe) {
-        char buffer[128];
-        bool found = fgets(buffer, sizeof(buffer), pipe) != nullptr;
-        pclose(pipe);
-        if (found)
-            return true;
-    }
-
-    pipe = popen("which kdialog 2>/dev/null", "r");
-    if (pipe) {
-        char buffer[128];
-        bool found = fgets(buffer, sizeof(buffer), pipe) != nullptr;
-        pclose(pipe);
-        if (found)
-            return true;
-    }
-
-    return false;
+#ifdef _WIN32
+    // Windows always has native file dialogs available
+    return true;
+#else
+    // Check for zenity or kdialog on Unix-like systems
+    return commandExists("which zenity") || commandExists("which kdialog");
+#endif
 }
