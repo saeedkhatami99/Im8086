@@ -12,9 +12,9 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
+#include <windows.h>
 #include <commdlg.h>
 #include <io.h>
-#include <windows.h>
 #define popen _popen
 #define pclose _pclose
 #else
