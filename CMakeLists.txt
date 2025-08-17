@@ -280,9 +280,15 @@ if(BUILD_TESTS)
         )
         target_link_libraries(test_gui 
             imgui
-            ${SDL2_LIBRARIES}
             ${OPENGL_LIBRARIES}
         )
+        
+        # Handle SDL2 linking - prefer modern target-based approach (vcpkg)
+        if(TARGET SDL2::SDL2)
+            target_link_libraries(test_gui SDL2::SDL2 SDL2::SDL2main)
+        elseif(SDL2_LIBRARIES)
+            target_link_libraries(test_gui ${SDL2_LIBRARIES})
+        endif()
         if(SDL2_CFLAGS_OTHER)
             target_compile_definitions(test_gui PRIVATE ${SDL2_CFLAGS_OTHER})
         endif()

@@ -1,3 +1,4 @@
+#define SDL_MAIN_HANDLED
 #include "gui/gui_application.h"
 #include "test_framework.h"
 
