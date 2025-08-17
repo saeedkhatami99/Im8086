@@ -84,18 +84,21 @@ make test  # Run test suite
 ## Usage
 
 ### Command Line Interface
+
 ```bash
 ./8086emu                    # Interactive REPL mode
 ./8086emu --help            # Show usage information
 ```
 
 ### GUI Mode
+
 ```bash
 ./8086emu --gui                        # Launch GUI
 ./8086emu --gui program.asm           # Launch GUI with assembly file
 ```
 
 **GUI Keyboard Shortcuts:**
+
 - `F2` - Toggle registers window
 - `F3` - Toggle memory window  
 - `F4` - Toggle assembly editor
@@ -106,12 +109,14 @@ make test  # Run test suite
 - `ESC` - Exit application
 
 ### TUI Mode
+
 ```bash
 ./8086emu --ide                        # Launch IDE mode
 ./8086emu --tui program.asm           # Launch TUI debugger with file
 ```
 
 **TUI Controls:**
+
 - `F5` - Run/pause program
 - `F10` - Step execute
 - `b` - Toggle breakpoint
@@ -135,6 +140,7 @@ The emulator supports the complete 8086 instruction set including:
 - **Processor Control:** CLC, STC, CMC, CLD, STD, CLI, STI, HLT, NOP
 
 ### Example Program
+
 ```assembly
 ; Simple addition program
 MOV AX, 10h      ; Load 16 into AX
@@ -147,18 +153,21 @@ HLT              ; Halt execution
 ## Testing
 
 ### Run All Tests
+
 ```bash
 cd build
 make test-all
 ```
 
 ### Individual Test Suites
+
 ```bash
 make test          # Core emulator tests
 make test-gui      # GUI component tests
 ```
 
 ### Test Coverage
+
 - Core emulator instruction execution
 - Register and memory operations
 - Program loading and step execution
@@ -167,19 +176,24 @@ make test-gui      # GUI component tests
 ## Development
 
 ### Code Style
+
 The project uses clang-format with Google style (modified). Format code with:
+
 ```bash
 find src include tests -name "*.cpp" -o -name "*.h" | xargs clang-format -i
 ```
 
 ### Static Analysis
+
 Run clang-tidy for code quality checks:
+
 ```bash
 cd build
 clang-tidy -p . ../src/*.cpp
 ```
 
 ### Contributing
+
 1. Follow the existing code style
 2. Add tests for new functionality
 3. Ensure all tests pass
@@ -188,17 +202,20 @@ clang-tidy -p . ../src/*.cpp
 ## Architecture
 
 ### Core Components
+
 - **Emulator8086**: Main emulator class with instruction execution
 - **Registers**: 8086 register set implementation  
 - **Memory**: 1MB linear memory model
 - **Instructions**: Modular instruction set implementation
 
 ### GUI Architecture
+
 - **GUIApplication**: Main application class using SDL2/ImGui
 - **Window Management**: Modular window system for different views
 - **Event Handling**: Keyboard shortcuts and user interactions
 
 ### TUI Architecture  
+
 - **EmulatorTUI**: Debugging interface using ncurses
 - **EmulatorIDETUI**: Integrated development environment with editor
 
