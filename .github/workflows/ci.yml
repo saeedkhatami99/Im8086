@@ -92,8 +92,12 @@ jobs:
     - name: Install dependencies (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        # For Windows, we'll build without GUI/TUI for now since dependency setup is complex
-        echo "Windows build - GUI/TUI dependencies skipped for CI"
+        # Install SDL2 using vcpkg
+        git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
+        C:\vcpkg\bootstrap-vcpkg.bat
+        C:\vcpkg\vcpkg install sdl2:x64-windows
+        echo "CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      shell: powershell
     
     - name: Install dependencies (macOS)
       if: matrix.os == 'macos-latest'
@@ -106,7 +110,11 @@ jobs:
     - name: Configure CMake
       run: |
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+        else
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+        fi
       shell: bash
     
     - name: Build
@@ -114,8 +122,15 @@ jobs:
         cd build
         cmake --build . --config Release
     
-    - name: Test (Unix only)
+    - name: Test (Unix)
       if: matrix.os != 'windows-latest'
       run: |
         cd build
         ./test_emulator
+    
+    - name: Test (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd build
+        .\test_emulator.exe
+      shell: cmd

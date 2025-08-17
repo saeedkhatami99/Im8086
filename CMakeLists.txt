@@ -19,12 +19,17 @@ find_package(PkgConfig QUIET)
 # Try to find SDL2 using different methods
 find_package(SDL2 QUIET)
 
+# If SDL2 not found, try SDL2 config mode (for vcpkg and other modern installations)
+if(NOT SDL2_FOUND)
+    find_package(SDL2 QUIET CONFIG)
+endif()
+
 # If SDL2 not found and we have pkg-config, try that
 if(NOT SDL2_FOUND AND PkgConfig_FOUND)
     pkg_check_modules(SDL2 QUIET sdl2)
 endif()
 
-# Windows-specific SDL2 search
+# Windows-specific SDL2 search (fallback)
 if(NOT SDL2_FOUND AND WIN32)
     # Try common Windows SDL2 installation paths
     find_path(SDL2_INCLUDE_DIRS SDL.h
@@ -114,8 +119,16 @@ if(BUILD_GUI)
         target_include_directories(imgui PUBLIC 
             ${IMGUI_DIR} 
             ${IMGUI_DIR}/backends
-            ${SDL2_INCLUDE_DIRS}
         )
+        
+        # Link imgui with SDL2 - prefer modern target-based approach
+        if(TARGET SDL2::SDL2)
+            target_link_libraries(imgui PUBLIC SDL2::SDL2)
+            target_include_directories(imgui PUBLIC ${SDL2_INCLUDE_DIRS})
+        elseif(SDL2_INCLUDE_DIRS)
+            target_include_directories(imgui PUBLIC ${SDL2_INCLUDE_DIRS})
+        endif()
+        
         if(SDL2_CFLAGS_OTHER)
             target_compile_definitions(imgui PUBLIC ${SDL2_CFLAGS_OTHER})
         endif()
@@ -184,9 +197,16 @@ endif()
 if(BUILD_GUI)
     list(APPEND LINK_LIBRARIES 
         imgui
-        ${SDL2_LIBRARIES}
         ${OPENGL_LIBRARIES}
     )
+    
+    # Handle SDL2 linking - prefer modern target-based approach (vcpkg)
+    if(TARGET SDL2::SDL2)
+        list(APPEND LINK_LIBRARIES SDL2::SDL2 SDL2::SDL2main)
+    elseif(SDL2_LIBRARIES)
+        list(APPEND LINK_LIBRARIES ${SDL2_LIBRARIES})
+    endif()
+    
     target_include_directories(${TARGET_NAME} PRIVATE 
         ${SDL2_INCLUDE_DIRS}
         ${IMGUI_DIR}
