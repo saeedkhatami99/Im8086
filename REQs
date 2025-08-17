@@ -1,0 +1,3 @@
+CMAKE
+SDL2
+libsdl2-dev libgl1-mesa-dev cmake

@@ -7,17 +7,32 @@
 #include "tui.h"
 #include "ide_tui.h"
 
+// Forward declaration for GUI main function (only if GUI is enabled)
+#ifdef WITH_GUI
+int main_gui(int argc, char* argv[]);
+#endif
+
 int main(int argc, char **argv)
 {
     Emulator8086 emu;
 
+#ifdef WITH_GUI
+    if (argc >= 2 && std::string(argv[1]) == "--gui")
+    {
+        return main_gui(argc, argv);
+    }
+#endif
+
+#ifdef WITH_TUI
     if (argc >= 2 && std::string(argv[1]) == "--ide")
     {
         EmulatorIDETUI ide(&emu);
         ide.run();
         return 0;
     }
+#endif
 
+#ifdef WITH_TUI
     if (argc >= 3 && std::string(argv[1]) == "--tui")
     {
         std::ifstream fin(argv[2]);
@@ -35,19 +50,36 @@ int main(int argc, char **argv)
         tui.run();
         return 0;
     }
+#endif
 
     if (argc > 1)
     {
         std::cout << "8086 Emulator Usage:\n";
         std::cout << "  " << argv[0] << "                    - Interactive command line mode\n";
+#ifdef WITH_GUI
+        std::cout << "  " << argv[0] << " --gui             - Modern GUI mode with SDL2/ImGui\n";
+#endif
+#ifdef WITH_TUI
         std::cout << "  " << argv[0] << " --ide             - IDE mode with integrated editor and debugger\n";
         std::cout << "  " << argv[0] << " --tui <file>      - TUI debugger mode with assembly file\n";
+#endif
+
+#ifdef WITH_GUI
+        std::cout << "\nGUI Mode Features:\n";
+        std::cout << "  - Cross-platform graphical interface\n";
+        std::cout << "  - Integrated assembly editor\n";
+        std::cout << "  - Visual debugging and memory inspection\n";
+        std::cout << "  - Real-time register monitoring\n";
+#endif
+
+#ifdef WITH_TUI
         std::cout << "\nIDE Mode Features:\n";
         std::cout << "  - Integrated assembly code editor\n";
         std::cout << "  - Real-time compilation and debugging\n";
         std::cout << "  - Step-by-step execution\n";
         std::cout << "  - Breakpoint support\n";
         std::cout << "  - Register and memory inspection\n";
+#endif
         std::cout << "  - Save/Load programs\n";
         return 0;
     }
