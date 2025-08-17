@@ -198,15 +198,27 @@ void EmulatorIDETUI::drawRegisters(int y, int x, int w) {
 
 void EmulatorIDETUI::drawStack(int y, int x, int w) {
     auto& r = emulator->getRegisters();
-    mvprintw(y++, x, "STACK (top 16 words)");
+    mvprintw(y++, x, "STACK (SP=0x%04X)", r.SP);
+    mvprintw(y++, x, "SS:SP = %04X:%04X", r.SS, r.SP);
+    y++;
+
     uint16_t sp = r.SP;
-    for (int i = 0; i < 16; ++i) {
-        uint16_t addr = sp + i * 2;
+    int displayed = 0;
+    for (int i = -12; i <= 12 && displayed < 12; i += 2) {
+        uint16_t addr = sp + i;
         if (addr >= 0xFFFF)
-            break;
+            continue;
+
         try {
             uint16_t val = emulator->readMemoryWord(addr);
-            mvprintw(y + i, x, "%04X: %04X", addr, val);
+            if (i == 0) {
+                attron(A_REVERSE);
+                mvprintw(y + displayed, x, "SP-> %04X: %04X", addr, val);
+                attroff(A_REVERSE);
+            } else {
+                mvprintw(y + displayed, x, "%+3d  %04X: %04X", i, addr, val);
+            }
+            displayed++;
         } catch (...) {
             break;
         }

@@ -43,9 +43,12 @@ class GUIApplication {
     bool showMemoryWindow = true;
     bool showDemoWindow = true;
     bool showAssemblyEditor = true;
+    bool showStackWindow = true;
+    bool showFileDialog = false;
 
     int memoryViewStart = 0;
     int memoryViewSize = 256;
+    int stackViewSize = 32;
 
     bool assemblyEditorModified = false;
     std::string assemblyEditorBuffer;
@@ -71,6 +74,12 @@ class GUIApplication {
     void renderEmulatorStatus();
     void renderRegistersWindow();
     void renderMemoryWindow();
+    void renderStackWindow();
+    void renderFileDialog();
+
+    std::string openFileDialog(const std::string& title = "Open Assembly File",
+                               const std::string& filters = "*.asm;*.s;*.as");
+    bool isFileDialogAvailable();
 
     void syncEditorBuffer();
     void updateAssemblyLinesFromBuffer();

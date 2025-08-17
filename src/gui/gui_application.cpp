@@ -1,5 +1,6 @@
 #include "gui/gui_application.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -405,6 +406,10 @@ void GUIApplication::handleKeyDown(const SDL_Event& event) {
             showAssemblyEditor = !showAssemblyEditor;
             break;
 
+        case SDLK_F5:
+            showStackWindow = !showStackWindow;
+            break;
+
         case SDLK_F7:
             if (emulator) {
                 try {
@@ -485,6 +490,8 @@ void GUIApplication::renderImGui() {
     renderEmulatorStatus();
     renderRegistersWindow();
     renderMemoryWindow();
+    renderStackWindow();
+    renderFileDialog();
 }
 
 void GUIApplication::renderMainMenuBar() {
@@ -545,6 +552,7 @@ void GUIApplication::renderMainMenuBar() {
             ImGui::MenuItem("Registers", "F2", &showRegistersWindow);
             ImGui::MenuItem("Memory", "F3", &showMemoryWindow);
             ImGui::MenuItem("Assembly", "F4", &showAssemblyEditor);
+            ImGui::MenuItem("Stack", "F5", &showStackWindow);
             ImGui::Separator();
             ImGui::MenuItem("Demo Window", nullptr, &showDemoWindow);
             ImGui::EndMenu();
@@ -613,20 +621,7 @@ void GUIApplication::renderAssemblyEditor() {
 
         ImGui::SameLine();
         if (ImGui::Button("Load")) {
-            static char filepath[256] = "";
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(200);
-            if (ImGui::InputText("##filepath",
-                                 filepath,
-                                 sizeof(filepath),
-                                 ImGuiInputTextFlags_EnterReturnsTrue)) {
-                if (strlen(filepath) > 0) {
-                    if (loadAssemblyFile(filepath)) {
-                        syncEditorBuffer();
-                        assemblyEditorModified = false;
-                    }
-                }
-            }
+            showFileDialog = true;
         }
 
         ImGui::SameLine();
@@ -1192,4 +1187,243 @@ void GUIApplication::cleanupSDL() {
         window = nullptr;
     }
     SDL_Quit();
+}
+
+void GUIApplication::renderStackWindow() {
+    if (!showStackWindow || !emulator) {
+        return;
+    }
+
+    if (ImGui::Begin("Stack Viewer", &showStackWindow)) {
+        const auto& registers = emulator->getRegisters();
+        uint16_t sp = registers.SP;
+        uint16_t ss = registers.SS;
+
+        ImGui::Text("Stack Segment: 0x%04X", ss);
+        ImGui::Text("Stack Pointer: 0x%04X", sp);
+        ImGui::Text("Stack Top Address: 0x%05X", (ss << 4) + sp);
+
+        ImGui::Separator();
+
+        ImGui::SliderInt("View Size", &stackViewSize, 8, 64);
+
+        ImGui::Separator();
+
+        if (ImGui::BeginTable("Stack", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+            ImGui::TableSetupColumn("Address");
+            ImGui::TableSetupColumn("Offset");
+            ImGui::TableSetupColumn("Value");
+            ImGui::TableSetupColumn("ASCII");
+            ImGui::TableHeadersRow();
+
+            for (int i = -stackViewSize; i <= stackViewSize; i += 2) {
+                uint16_t addr = sp + i;
+                uint32_t physAddr = (ss << 4) + addr;
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+
+                if (i == 0) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+                    ImGui::Text("0x%05X", physAddr);
+                    ImGui::PopStyleColor();
+                } else {
+                    ImGui::Text("0x%05X", physAddr);
+                }
+
+                ImGui::TableNextColumn();
+                if (i == 0) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+                    ImGui::Text("SP+%d", i);
+                    ImGui::PopStyleColor();
+                } else {
+                    ImGui::Text("SP%+d", i);
+                }
+
+                ImGui::TableNextColumn();
+                try {
+                    uint16_t value = emulator->readMemoryWord(addr);
+                    if (i == 0) {
+                        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+                        ImGui::Text("0x%04X", value);
+                        ImGui::PopStyleColor();
+                    } else {
+                        ImGui::Text("0x%04X", value);
+                    }
+
+                    ImGui::TableNextColumn();
+
+                    char ascii[3] = {0};
+                    uint8_t low = value & 0xFF;
+                    uint8_t high = (value >> 8) & 0xFF;
+                    ascii[0] = (low >= 32 && low < 127) ? low : '.';
+                    ascii[1] = (high >= 32 && high < 127) ? high : '.';
+                    ImGui::Text("%s", ascii);
+                } catch (...) {
+                    ImGui::Text("????");
+                    ImGui::TableNextColumn();
+                    ImGui::Text("??");
+                }
+            }
+
+            ImGui::EndTable();
+        }
+
+        ImGui::Separator();
+        ImGui::Text("Note: SP (Stack Pointer) is highlighted in yellow");
+    }
+    ImGui::End();
+}
+
+void GUIApplication::renderFileDialog() {
+    if (!showFileDialog) {
+        return;
+    }
+
+    std::string selectedFile = openFileDialog();
+    if (!selectedFile.empty()) {
+        if (loadAssemblyFile(selectedFile)) {
+            syncEditorBuffer();
+            assemblyEditorModified = false;
+        }
+        showFileDialog = false;
+        return;
+    }
+
+    if (ImGui::Begin("Open Assembly File", &showFileDialog, ImGuiWindowFlags_AlwaysAutoResize)) {
+        static char pathBuffer[512] = "./";
+        static std::vector<std::string> files;
+        static std::vector<std::string> directories;
+        static bool needRefresh = true;
+
+        if (needRefresh) {
+            files.clear();
+            directories.clear();
+
+            const char* testFiles[] = {"samples/sample_01.txt",
+                                       "samples/sample_02.txt",
+                                       "samples/sample_03.txt",
+                                       "samples/tui/sample_01.asm",
+                                       "samples/tui/sample_02.asm",
+                                       "samples/tui/test_ide.asm"};
+
+            for (const char* file : testFiles) {
+                std::ifstream test(file);
+                if (test.good()) {
+                    files.push_back(file);
+                }
+            }
+
+            needRefresh = false;
+        }
+
+        ImGui::Text("Current directory: %s", pathBuffer);
+        ImGui::Separator();
+
+        ImGui::Text("Assembly Files:");
+        for (size_t i = 0; i < files.size(); ++i) {
+            if (ImGui::Selectable(files[i].c_str())) {
+                if (loadAssemblyFile(files[i])) {
+                    syncEditorBuffer();
+                    assemblyEditorModified = false;
+                }
+                showFileDialog = false;
+                break;
+            }
+        }
+
+        ImGui::Separator();
+        ImGui::Text("Enter file path manually:");
+        static char manualPath[512] = "";
+        if (ImGui::InputText("##manualpath",
+                             manualPath,
+                             sizeof(manualPath),
+                             ImGuiInputTextFlags_EnterReturnsTrue)) {
+            if (strlen(manualPath) > 0) {
+                if (loadAssemblyFile(manualPath)) {
+                    syncEditorBuffer();
+                    assemblyEditorModified = false;
+                }
+                showFileDialog = false;
+            }
+        }
+
+        if (ImGui::Button("Cancel")) {
+            showFileDialog = false;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Refresh")) {
+            needRefresh = true;
+        }
+    }
+    ImGui::End();
+}
+
+std::string GUIApplication::openFileDialog(const std::string& title, const std::string& filters) {
+    std::string command = "zenity --file-selection --title=\"" + title + "\"";
+    if (!filters.empty()) {
+        command += " --file-filter='Assembly files (" + filters + ")|" + filters + "'";
+        command += " --file-filter='All files|*'";
+    }
+
+    FILE* pipe = popen(command.c_str(), "r");
+    if (pipe) {
+        char buffer[1024];
+        std::string result;
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            result += buffer;
+        }
+        int status = pclose(pipe);
+
+        if (!result.empty() && result.back() == '\n') {
+            result.pop_back();
+        }
+
+        if (status == 0 && !result.empty()) {
+            return result;
+        }
+    }
+
+    command = "kdialog --getopenfilename . \"" + filters + "|Assembly files\"";
+    pipe = popen(command.c_str(), "r");
+    if (pipe) {
+        char buffer[1024];
+        std::string result;
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            result += buffer;
+        }
+        int status = pclose(pipe);
+
+        if (!result.empty() && result.back() == '\n') {
+            result.pop_back();
+        }
+
+        if (status == 0 && !result.empty()) {
+            return result;
+        }
+    }
+
+    return "";
+}
+
+bool GUIApplication::isFileDialogAvailable() {
+    FILE* pipe = popen("which zenity 2>/dev/null", "r");
+    if (pipe) {
+        char buffer[128];
+        bool found = fgets(buffer, sizeof(buffer), pipe) != nullptr;
+        pclose(pipe);
+        if (found)
+            return true;
+    }
+
+    pipe = popen("which kdialog 2>/dev/null", "r");
+    if (pipe) {
+        char buffer[128];
+        bool found = fgets(buffer, sizeof(buffer), pipe) != nullptr;
+        pclose(pipe);
+        if (found)
+            return true;
+    }
+
+    return false;
 }

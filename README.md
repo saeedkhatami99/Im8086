@@ -29,6 +29,8 @@ A comprehensive Intel 8086 microprocessor emulator with both GUI and TUI interfa
 - **Interactive assembly editor** with syntax highlighting and file operations
 - **Real-time register viewer** with detailed flag status
 - **Memory hex editor** with ASCII view and navigation
+- **Stack viewer** with SP highlighting and offset display
+- **Native file dialogs** for easy assembly file selection
 - **Step execution controls** with program loading
 - **Cross-platform support** (Linux, macOS, Windows)
 - **Keyboard shortcuts** for all major operations
@@ -38,6 +40,7 @@ A comprehensive Intel 8086 microprocessor emulator with both GUI and TUI interfa
 - **Integrated development environment** with text editor
 - **Terminal-based debugging** with breakpoint support
 - **Memory and register inspection** in real-time
+- **Enhanced stack visualization** with SP relative offsets
 - **Program execution controls** with step and run modes
 
 ## Build Requirements
@@ -108,6 +111,7 @@ make test
 - `F2` - Toggle registers window
 - `F3` - Toggle memory window  
 - `F4` - Toggle assembly editor
+- `F5` - Toggle stack viewer
 - `F7` - Step execute instruction
 - `Ctrl+R` - Reset emulator
 - `Ctrl+L` - Load program into emulator
