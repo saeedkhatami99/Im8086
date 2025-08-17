@@ -9,11 +9,10 @@
 #include <stdexcept>
 
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <commdlg.h>
 #include <io.h>
-#include <windows.h>
-#include <commctrl.h>
-#include <prsht.h>
 #define popen _popen
 #define pclose _pclose
 #else
