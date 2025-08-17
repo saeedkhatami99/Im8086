@@ -5,30 +5,20 @@ IndentWidth: 4
 TabWidth: 4
 UseTab: Never
 ColumnLimit: 100
-
-# Indentation
 AccessModifierOffset: -2
 ConstructorInitializerIndentWidth: 4
 ContinuationIndentWidth: 4
-
-# Alignment
 AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 AlignEscapedNewlines: Left
 AlignOperands: true
 AlignTrailingComments: true
-
-# Allow putting simple functions on a single line
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
-
-# Braces
 BreakBeforeBraces: Attach
 Cpp11BracedListStyle: true
-
-# Spacing
 SpaceAfterCStyleCast: false
 SpaceAfterTemplateKeyword: true
 SpaceBeforeAssignmentOperators: true
@@ -39,8 +29,6 @@ SpacesInAngles: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-
-# Line breaks
 AllowAllParametersOfDeclarationOnNextLine: false
 BinPackArguments: false
 BinPackParameters: false
@@ -48,8 +36,6 @@ BreakBeforeBinaryOperators: None
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon
 BreakInheritanceList: BeforeColon
-
-# Include sorting
 SortIncludes: true
 IncludeBlocks: Regroup
 IncludeCategories:
@@ -59,12 +45,8 @@ IncludeCategories:
     Priority: 2
   - Regex: '.*'
     Priority: 3
-
-# Formatting for specific constructs
 PointerAlignment: Left
 DerivePointerAlignment: false
 ReflowComments: true
 FixNamespaceComments: true
-
-# Modern C++ features
-Standard: Cpp17
+Standard: Latest

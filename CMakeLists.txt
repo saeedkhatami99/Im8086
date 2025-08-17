@@ -1,42 +1,28 @@
 cmake_minimum_required(VERSION 3.16)
 project(Im8086 CXX)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Build configuration
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Set the target name (was 8086emu in Makefile)
 set(TARGET_NAME "8086emu")
-
-# Compiler flags - matching original Makefile
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
-
-# Warning flags - matching original Makefile
 add_compile_options(-Wall -Wextra -Wpedantic)
-
-# Include directories
 include_directories(include)
-
-# Find packages
 find_package(PkgConfig REQUIRED)
-
-# SDL2 for GUI
 find_package(SDL2 QUIET)
+
 if(NOT SDL2_FOUND)
-    # Fallback for systems without SDL2 cmake support
+    
     pkg_check_modules(SDL2 QUIET sdl2)
 endif()
 
-# OpenGL for GUI
 find_package(OpenGL QUIET)
-
-# Check if we should build GUI (requires SDL2 and OpenGL)
 set(BUILD_GUI OFF)
+
 if(SDL2_FOUND AND OPENGL_FOUND)
     set(BUILD_GUI ON)
     message(STATUS "GUI support enabled")
@@ -44,8 +30,8 @@ else()
     message(STATUS "GUI support disabled (SDL2 or OpenGL not found)")
 endif()
 
-# ncurses for TUI (Unix-like systems only)
 set(BUILD_TUI OFF)
+
 if(UNIX)
     pkg_check_modules(NCURSES QUIET ncurses)
     if(NCURSES_FOUND)
@@ -55,7 +41,6 @@ if(UNIX)
         message(STATUS "TUI support disabled (ncurses not found)")
     endif()
 else()
-    # Windows support would use PDCurses
     find_library(PDCURSES_LIB pdcurses)
     if(PDCURSES_LIB)
         set(BUILD_TUI ON)
@@ -66,7 +51,6 @@ else()
     endif()
 endif()
 
-# ImGui sources (only if GUI is enabled)
 if(BUILD_GUI)
     set(IMGUI_DIR "${CMAKE_SOURCE_DIR}/third_party/imgui")
     if(EXISTS "${IMGUI_DIR}")
@@ -79,7 +63,6 @@ if(BUILD_GUI)
             ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
             ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
         )
-        
         add_library(imgui STATIC ${IMGUI_SOURCES})
         target_include_directories(imgui PUBLIC 
             ${IMGUI_DIR} 
@@ -94,7 +77,6 @@ if(BUILD_GUI)
     endif()
 endif()
 
-# Core emulator sources (from original Makefile)
 set(CORE_SOURCES
     src/emulator8086.cpp
     src/memory_components.cpp
@@ -107,13 +89,11 @@ set(CORE_SOURCES
     src/instructions/string.cpp
 )
 
-# Main executable source
 set(MAIN_SOURCES
     src/main.cpp
 )
-
-# TUI sources (conditional)
 set(TUI_SOURCES)
+
 if(BUILD_TUI)
     list(APPEND TUI_SOURCES
         src/tui.cpp
@@ -121,8 +101,8 @@ if(BUILD_TUI)
     )
 endif()
 
-# GUI sources (conditional)
 set(GUI_SOURCES)
+
 if(BUILD_GUI)
     list(APPEND GUI_SOURCES
         src/gui/gui_application.cpp
@@ -130,7 +110,6 @@ if(BUILD_GUI)
     )
 endif()
 
-# Create main executable
 add_executable(${TARGET_NAME} 
     ${MAIN_SOURCES} 
     ${CORE_SOURCES}
@@ -138,7 +117,6 @@ add_executable(${TARGET_NAME}
     ${GUI_SOURCES}
 )
 
-# Set compile definitions based on enabled features
 if(BUILD_TUI)
     target_compile_definitions(${TARGET_NAME} PRIVATE WITH_TUI)
 endif()
@@ -147,10 +125,8 @@ if(BUILD_GUI)
     target_compile_definitions(${TARGET_NAME} PRIVATE WITH_GUI)
 endif()
 
-# Link libraries based on enabled features
 set(LINK_LIBRARIES)
 
-# TUI libraries
 if(BUILD_TUI)
     list(APPEND LINK_LIBRARIES ${NCURSES_LIBRARIES})
     if(NCURSES_INCLUDE_DIRS)
@@ -158,27 +134,22 @@ if(BUILD_TUI)
     endif()
 endif()
 
-# GUI libraries
 if(BUILD_GUI)
     list(APPEND LINK_LIBRARIES 
         imgui
         ${SDL2_LIBRARIES}
         ${OPENGL_LIBRARIES}
     )
-    
-    # Include directories for GUI
     target_include_directories(${TARGET_NAME} PRIVATE 
         ${SDL2_INCLUDE_DIRS}
         ${IMGUI_DIR}
         ${IMGUI_DIR}/backends
     )
-    
-    # Compile definitions
+
     if(SDL2_CFLAGS_OTHER)
         target_compile_definitions(${TARGET_NAME} PRIVATE ${SDL2_CFLAGS_OTHER})
     endif()
     
-    # Platform-specific OpenGL linking
     if(WIN32)
         list(APPEND LINK_LIBRARIES opengl32)
     elseif(APPLE)
@@ -188,12 +159,10 @@ if(BUILD_GUI)
     endif()
 endif()
 
-# Apply all link libraries
 if(LINK_LIBRARIES)
     target_link_libraries(${TARGET_NAME} ${LINK_LIBRARIES})
 endif()
 
-# Compiler-specific flags
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(${TARGET_NAME} PRIVATE 
         $<$<CONFIG:Debug>:-fsanitize=address>
@@ -203,12 +172,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
     )
 endif()
 
-# Installation
 install(TARGETS ${TARGET_NAME} 
     RUNTIME DESTINATION bin
 )
 
-# Custom targets to match original Makefile functionality
 add_custom_target(run
     COMMAND ${TARGET_NAME}
     DEPENDS ${TARGET_NAME}
@@ -216,18 +183,15 @@ add_custom_target(run
     COMMENT "Running ${TARGET_NAME} in REPL mode"
 )
 
-# Test targets
 option(BUILD_TESTS "Build test suite" ON)
 
 if(BUILD_TESTS)
-    # Test for core emulator
     add_executable(test_emulator
         tests/test_emulator.cpp
         ${CORE_SOURCES}
     )
     target_include_directories(test_emulator PRIVATE include tests)
     
-    # Test for GUI (only if GUI is enabled)
     if(BUILD_GUI)
         add_executable(test_gui
             tests/test_gui.cpp
@@ -258,7 +222,6 @@ if(BUILD_TESTS)
         endif()
     endif()
     
-    # Test runner target
     add_custom_target(test
         COMMAND test_emulator
         DEPENDS test_emulator
@@ -297,13 +260,11 @@ if(BUILD_GUI)
     )
 endif()
 
-# TUI run target with file parameter
 add_custom_target(run-tui
     COMMAND echo "Usage: make run-tui FILE=samples/sample_01.txt"
     COMMENT "Run TUI mode with a file (specify FILE=<path>)"
 )
 
-# Distribution target
 add_custom_target(dist
     COMMAND ${CMAKE_COMMAND} -E tar czf ${TARGET_NAME}_${CMAKE_SYSTEM_NAME}_${CMAKE_SYSTEM_PROCESSOR}.tar.gz $<TARGET_FILE:${TARGET_NAME}>
     DEPENDS ${TARGET_NAME}
@@ -311,7 +272,6 @@ add_custom_target(dist
     COMMENT "Creating distribution package"
 )
 
-# Print build configuration summary
 message(STATUS "===== Build Configuration =====")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
@@ -335,7 +295,6 @@ endif()
 
 message(STATUS "===============================")
 
-# Help target
 add_custom_target(show-help
     COMMAND ${CMAKE_COMMAND} -E echo "Available targets:"
     COMMAND ${CMAKE_COMMAND} -E echo "  all \\(default\\)   - Build executable"

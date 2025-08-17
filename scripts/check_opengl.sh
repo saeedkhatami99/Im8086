@@ -1,17 +1,12 @@
 #!/bin/bash
 
-# OpenGL diagnostic script for Ubuntu XFCE
 echo "=== OpenGL Diagnostic Tool ==="
 echo "Checking OpenGL support on your system..."
 echo ""
-
-# Check GPU information
 echo "GPU Information:"
 lspci | grep -i vga
 lspci | grep -i 3d
 echo ""
-
-# Check OpenGL support
 echo "OpenGL Support:"
 if command -v glxinfo >/dev/null 2>&1; then
     glxinfo | grep "OpenGL version"
@@ -29,11 +24,7 @@ else
     fi
 fi
 echo ""
-
-# Check for common OpenGL issues
 echo "Checking for common issues:"
-
-# Check if we're using software rendering
 if glxinfo 2>/dev/null | grep -q "llvmpipe\|softpipe\|software"; then
     echo "⚠️  WARNING: Using software rendering (Mesa/LLVM)"
     echo "   This means you don't have proper GPU drivers installed."
@@ -48,8 +39,6 @@ elif glxinfo 2>/dev/null | grep -q "direct rendering: Yes"; then
 else
     echo "❓ Could not determine rendering status"
 fi
-
-# Check XFCE compositor
 echo ""
 echo "XFCE Compositor status:"
 if command -v xfconf-query >/dev/null 2>&1; then
@@ -63,8 +52,6 @@ if command -v xfconf-query >/dev/null 2>&1; then
 else
     echo "❓ Could not check XFCE compositor status"
 fi
-
-# Check for conflicting packages
 echo ""
 echo "Checking for package conflicts:"
 if dpkg -l | grep -q "fglrx\|nvidia-.*-binary"; then
@@ -73,7 +60,6 @@ if dpkg -l | grep -q "fglrx\|nvidia-.*-binary"; then
 else
     echo "✅ No conflicting driver packages found"
 fi
-
 echo ""
 echo "=== Recommendations ==="
 echo "If the GUI still doesn't work after checking above:"

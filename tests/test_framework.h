@@ -1,14 +1,14 @@
 #ifndef TEST_FRAMEWORK_H
 #define TEST_FRAMEWORK_H
 
+#include <exception>
+#include <functional>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <functional>
-#include <exception>
 
 class TestFramework {
-public:
+  public:
     struct TestCase {
         std::string name;
         std::function<void()> test;
@@ -48,29 +48,31 @@ public:
         return failed;
     }
 
-private:
+  private:
     std::vector<TestCase> tests;
 };
 
-// Test macros
-#define TEST_CASE(name) \
-    static void test_##name(); \
+#define TEST_CASE(name)                                                                   \
+    static void test_##name();                                                            \
     static int dummy_##name = (TestFramework::instance().addTest(#name, test_##name), 0); \
     static void test_##name()
 
-#define REQUIRE(expr) \
-    if (!(expr)) { \
-        throw std::runtime_error("Assertion failed: " #expr " at " __FILE__ ":" + std::to_string(__LINE__)); \
+#define REQUIRE(expr)                                                             \
+    if (!(expr)) {                                                                \
+        throw std::runtime_error("Assertion failed: " #expr " at " __FILE__ ":" + \
+                                 std::to_string(__LINE__));                       \
     }
 
-#define REQUIRE_EQ(a, b) \
-    if ((a) != (b)) { \
-        throw std::runtime_error("Assertion failed: " #a " == " #b " at " __FILE__ ":" + std::to_string(__LINE__)); \
+#define REQUIRE_EQ(a, b)                                                                 \
+    if ((a) != (b)) {                                                                    \
+        throw std::runtime_error("Assertion failed: " #a " == " #b " at " __FILE__ ":" + \
+                                 std::to_string(__LINE__));                              \
     }
 
-#define REQUIRE_NE(a, b) \
-    if ((a) == (b)) { \
-        throw std::runtime_error("Assertion failed: " #a " != " #b " at " __FILE__ ":" + std::to_string(__LINE__)); \
+#define REQUIRE_NE(a, b)                                                                 \
+    if ((a) == (b)) {                                                                    \
+        throw std::runtime_error("Assertion failed: " #a " != " #b " at " __FILE__ ":" + \
+                                 std::to_string(__LINE__));                              \
     }
 
-#endif // TEST_FRAMEWORK_H
+#endif

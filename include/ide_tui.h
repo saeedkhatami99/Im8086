@@ -1,22 +1,21 @@
 #ifndef IM8086_IDE_TUI_H
 #define IM8086_IDE_TUI_H
 
-#include <vector>
-#include <string>
-#include <set>
 #include <cstdint>
+#include <set>
+#include <string>
+#include <vector>
 
 class Emulator8086;
 
-class EmulatorIDETUI
-{
-public:
-    explicit EmulatorIDETUI(Emulator8086 *emu);
+class EmulatorIDETUI {
+  public:
+    explicit EmulatorIDETUI(Emulator8086* emu);
     ~EmulatorIDETUI();
     void run();
 
-private:
-    Emulator8086 *emulator;
+  private:
+    Emulator8086* emulator;
     bool running = false;
     bool quit = false;
     int memWindowStart = 0;
@@ -62,9 +61,9 @@ private:
     void moveCursor(int dy, int dx);
     void ensureCursorVisible(int h, int w);
 
-    void setStatus(const std::string &msg);
+    void setStatus(const std::string& msg);
     std::string getCurrentLine();
-    void setCurrentLine(const std::string &line);
+    void setCurrentLine(const std::string& line);
 };
 
 #endif

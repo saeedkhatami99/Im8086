@@ -1,12 +1,13 @@
 #include "instructions/string.h"
-#include "emulator8086.h"
-#include <stdexcept>
+
 #include <algorithm>
+#include <stdexcept>
 
-StringInstructions::StringInstructions(Emulator8086 *emu) : emulator(emu) {}
+#include "emulator8086.h"
 
-void StringInstructions::movsb(const std::vector<std::string> &operands)
-{
+StringInstructions::StringInstructions(Emulator8086* emu) : emulator(emu) {}
+
+void StringInstructions::movsb(const std::vector<std::string>& operands) {
     if (!operands.empty())
         throw std::runtime_error("MOVSB takes no operands");
     uint8_t value = emulator->readMemoryByte(emulator->getRegisters().SI);
@@ -16,8 +17,7 @@ void StringInstructions::movsb(const std::vector<std::string> &operands)
     emulator->getRegisters().DI += adjust;
 }
 
-void StringInstructions::movsw(const std::vector<std::string> &operands)
-{
+void StringInstructions::movsw(const std::vector<std::string>& operands) {
     if (!operands.empty())
         throw std::runtime_error("MOVSW takes no operands");
     uint16_t value = emulator->readMemoryWord(emulator->getRegisters().SI);
@@ -27,8 +27,7 @@ void StringInstructions::movsw(const std::vector<std::string> &operands)
     emulator->getRegisters().DI += adjust;
 }
 
-void StringInstructions::cmpsb(const std::vector<std::string> &operands)
-{
+void StringInstructions::cmpsb(const std::vector<std::string>& operands) {
     if (!operands.empty())
         throw std::runtime_error("CMPSB takes no operands");
     uint8_t src = emulator->readMemoryByte(emulator->getRegisters().SI);
@@ -40,8 +39,7 @@ void StringInstructions::cmpsb(const std::vector<std::string> &operands)
     emulator->getRegisters().DI += adjust;
 }
 
-void StringInstructions::cmpsw(const std::vector<std::string> &operands)
-{
+void StringInstructions::cmpsw(const std::vector<std::string>& operands) {
     if (!operands.empty())
         throw std::runtime_error("CMPSW takes no operands");
     uint16_t src = emulator->readMemoryWord(emulator->getRegisters().SI);
@@ -53,8 +51,7 @@ void StringInstructions::cmpsw(const std::vector<std::string> &operands)
     emulator->getRegisters().DI += adjust;
 }
 
-void StringInstructions::scasb(const std::vector<std::string> &operands)
-{
+void StringInstructions::scasb(const std::vector<std::string>& operands) {
     if (!operands.empty())
         throw std::runtime_error("SCASB takes no operands");
     uint8_t dest = emulator->getRegisters().AX.bytes.l;
@@ -65,8 +62,7 @@ void StringInstructions::scasb(const std::vector<std::string> &operands)
     emulator->getRegisters().DI += adjust;
 }
 
-void StringInstructions::scasw(const std::vector<std::string> &operands)
-{
+void StringInstructions::scasw(const std::vector<std::string>& operands) {
     if (!operands.empty())
         throw std::runtime_error("SCASW takes no operands");
     uint16_t dest = emulator->getRegisters().AX.x;
@@ -77,8 +73,7 @@ void StringInstructions::scasw(const std::vector<std::string> &operands)
     emulator->getRegisters().DI += adjust;
 }
 
-void StringInstructions::lodsb(const std::vector<std::string> &operands)
-{
+void StringInstructions::lodsb(const std::vector<std::string>& operands) {
     if (!operands.empty())
         throw std::runtime_error("LODSB takes no operands");
     emulator->getRegisters().AX.bytes.l = emulator->readMemoryByte(emulator->getRegisters().SI);
@@ -86,8 +81,7 @@ void StringInstructions::lodsb(const std::vector<std::string> &operands)
     emulator->getRegisters().SI += adjust;
 }
 
-void StringInstructions::lodsw(const std::vector<std::string> &operands)
-{
+void StringInstructions::lodsw(const std::vector<std::string>& operands) {
     if (!operands.empty())
         throw std::runtime_error("LODSW takes no operands");
     emulator->getRegisters().AX.x = emulator->readMemoryWord(emulator->getRegisters().SI);
@@ -95,8 +89,7 @@ void StringInstructions::lodsw(const std::vector<std::string> &operands)
     emulator->getRegisters().SI += adjust;
 }
 
-void StringInstructions::stosb(const std::vector<std::string> &operands)
-{
+void StringInstructions::stosb(const std::vector<std::string>& operands) {
     if (!operands.empty())
         throw std::runtime_error("STOSB takes no operands");
     emulator->writeMemoryByte(emulator->getRegisters().DI, emulator->getRegisters().AX.bytes.l);
@@ -104,8 +97,7 @@ void StringInstructions::stosb(const std::vector<std::string> &operands)
     emulator->getRegisters().DI += adjust;
 }
 
-void StringInstructions::stosw(const std::vector<std::string> &operands)
-{
+void StringInstructions::stosw(const std::vector<std::string>& operands) {
     if (!operands.empty())
         throw std::runtime_error("STOSW takes no operands");
     emulator->writeMemoryWord(emulator->getRegisters().DI, emulator->getRegisters().AX.x);
@@ -113,16 +105,14 @@ void StringInstructions::stosw(const std::vector<std::string> &operands)
     emulator->getRegisters().DI += adjust;
 }
 
-void StringInstructions::rep(const std::vector<std::string> &operands)
-{
+void StringInstructions::rep(const std::vector<std::string>& operands) {
     if (operands.size() != 1)
         throw std::runtime_error("REP requires 1 string operation");
 
     std::string op = operands[0];
     std::transform(op.begin(), op.end(), op.begin(), ::toupper);
 
-    while (emulator->getRegisters().CX.x > 0)
-    {
+    while (emulator->getRegisters().CX.x > 0) {
         if (op == "MOVSB")
             movsb({});
         else if (op == "MOVSW")
@@ -142,16 +132,14 @@ void StringInstructions::rep(const std::vector<std::string> &operands)
     }
 }
 
-void StringInstructions::repe(const std::vector<std::string> &operands)
-{
+void StringInstructions::repe(const std::vector<std::string>& operands) {
     if (operands.size() != 1)
         throw std::runtime_error("REPE requires 1 string operation");
 
     std::string op = operands[0];
     std::transform(op.begin(), op.end(), op.begin(), ::toupper);
 
-    while (emulator->getRegisters().CX.x > 0)
-    {
+    while (emulator->getRegisters().CX.x > 0) {
         if (op == "CMPSB")
             cmpsb({});
         else if (op == "CMPSW")
@@ -170,16 +158,14 @@ void StringInstructions::repe(const std::vector<std::string> &operands)
     }
 }
 
-void StringInstructions::repne(const std::vector<std::string> &operands)
-{
+void StringInstructions::repne(const std::vector<std::string>& operands) {
     if (operands.size() != 1)
         throw std::runtime_error("REPNE requires 1 string operation");
 
     std::string op = operands[0];
     std::transform(op.begin(), op.end(), op.begin(), ::toupper);
 
-    while (emulator->getRegisters().CX.x > 0)
-    {
+    while (emulator->getRegisters().CX.x > 0) {
         if (op == "CMPSB")
             cmpsb({});
         else if (op == "CMPSW")
@@ -198,25 +184,21 @@ void StringInstructions::repne(const std::vector<std::string> &operands)
     }
 }
 
-void StringInstructions::repnz(const std::vector<std::string> &operands)
-{
+void StringInstructions::repnz(const std::vector<std::string>& operands) {
     repne(operands);
 }
 
-void StringInstructions::repz(const std::vector<std::string> &operands)
-{
+void StringInstructions::repz(const std::vector<std::string>& operands) {
     repe(operands);
 }
 
-void StringInstructions::xlat(const std::vector<std::string> &operands)
-{
+void StringInstructions::xlat(const std::vector<std::string>& operands) {
     if (!operands.empty())
         throw std::runtime_error("XLAT takes no operands");
     uint16_t address = emulator->getRegisters().BX.x + emulator->getRegisters().AX.bytes.l;
     emulator->getRegisters().AX.bytes.l = emulator->readMemoryByte(address);
 }
 
-void StringInstructions::xlatb(const std::vector<std::string> &operands)
-{
+void StringInstructions::xlatb(const std::vector<std::string>& operands) {
     xlat(operands);
 }

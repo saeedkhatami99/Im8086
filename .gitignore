@@ -5,3 +5,5 @@ obj
 *.temp
 *.bat
 TODO
+REQ
+migrate_to_cmake.sh

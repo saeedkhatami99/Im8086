@@ -78,7 +78,7 @@ make -j$(nproc)
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
 make -j$(nproc)
-make test  # Run test suite
+make test
 ```
 
 ## Usage
@@ -86,15 +86,15 @@ make test  # Run test suite
 ### Command Line Interface
 
 ```bash
-./8086emu                    # Interactive REPL mode
-./8086emu --help            # Show usage information
+./8086emu
+./8086emu --help
 ```
 
 ### GUI Mode
 
 ```bash
-./8086emu --gui                        # Launch GUI
-./8086emu --gui program.asm           # Launch GUI with assembly file
+./8086emu --gui
+./8086emu --gui program.asm
 ```
 
 **GUI Keyboard Shortcuts:**
@@ -111,8 +111,8 @@ make test  # Run test suite
 ### TUI Mode
 
 ```bash
-./8086emu --ide                        # Launch IDE mode
-./8086emu --tui program.asm           # Launch TUI debugger with file
+./8086emu --ide
+./8086emu --tui program.asm
 ```
 
 **TUI Controls:**
@@ -162,8 +162,8 @@ make test-all
 ### Individual Test Suites
 
 ```bash
-make test          # Core emulator tests
-make test-gui      # GUI component tests
+make test
+make test-gui
 ```
 
 ### Test Coverage
