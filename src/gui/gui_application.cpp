@@ -12,6 +12,8 @@
 #include <commdlg.h>
 #include <io.h>
 #include <windows.h>
+#include <commctrl.h>
+#include <prsht.h>
 #define popen _popen
 #define pclose _pclose
 #else
