@@ -18,7 +18,9 @@ class GUIApplication {
     GUIApplication();
     ~GUIApplication();
 
-    bool initialize(int width = 1280, int height = 720, const std::string& title = "Im8086 Emulator");
+    bool initialize(int width = 1280,
+                    int height = 720,
+                    const std::string& title = "Im8086 Emulator");
     bool loadAssemblyFile(const std::string& filePath);
     void run();
     void shutdown();

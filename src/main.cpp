@@ -48,7 +48,8 @@ int main(int argc, char** argv) {
 #endif
 
     if (argc > 1) {
-        std::cout << "Im8086 Emulator v" << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH << " (" << BUILD_PLATFORM << ")\n";
+        std::cout << "Im8086 Emulator v" << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR
+                  << "." << PROJECT_VERSION_PATCH << " (" << BUILD_PLATFORM << ")\n";
         std::cout << "Intel 8086 Microprocessor Emulator\n\n";
         std::cout << "Usage:\n";
         std::cout << "  " << argv[0] << "                    - Interactive command line mode\n";
@@ -85,7 +86,8 @@ int main(int argc, char** argv) {
 
     std::string input;
 
-    std::cout << "Im8086 Emulator v" << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH << " (" << BUILD_PLATFORM << ")\n";
+    std::cout << "Im8086 Emulator v" << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "."
+              << PROJECT_VERSION_PATCH << " (" << BUILD_PLATFORM << ")\n";
     std::cout << "Intel 8086 Microprocessor Emulator\n\n";
     std::cout << "Commands:\n";
     std::cout << "  '?' - display help\n";
