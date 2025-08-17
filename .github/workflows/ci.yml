@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+        
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libsdl2-dev \
+          libgl1-mesa-dev \
+          libncurses5-dev \
+          clang-format \
+          clang-tidy
+    
+    - name: Create build directory
+      run: mkdir build
+    
+    - name: Configure CMake
+      run: |
+        cd build
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DBUILD_TESTS=ON
+    
+    - name: Build
+      run: |
+        cd build
+        make -j$(nproc)
+    
+    - name: Run tests
+      run: |
+        cd build
+        ./test_emulator
+        # GUI tests require display, skip for now
+        # ./test_gui
+    
+    - name: Check code formatting
+      run: |
+        find src include tests -name "*.cpp" -o -name "*.h" | \
+        xargs clang-format -style=file --dry-run --Werror
+        
+    - name: Run static analysis
+      run: |
+        cd build
+        # Run clang-tidy on main source files
+        find ../src ../include -name "*.cpp" -not -path "*/third_party/*" | \
+        head -5 | \
+        xargs clang-tidy -p . --warnings-as-errors=*
+
+  cross-platform-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    
+    - name: Install dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libsdl2-dev \
+          libgl1-mesa-dev \
+          libncurses5-dev
+    
+    - name: Install dependencies (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        # Windows dependencies would be handled by vcpkg or similar
+        echo "Windows build dependencies setup"
+    
+    - name: Install dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install sdl2 ncurses
+    
+    - name: Create build directory
+      run: mkdir build
+    
+    - name: Configure CMake
+      run: |
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+    
+    - name: Build
+      run: |
+        cd build
+        cmake --build . --config Release
+    
+    - name: Test (Unix only)
+      if: matrix.os != 'windows-latest'
+      run: |
+        cd build
+        ./test_emulator

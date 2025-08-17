@@ -216,6 +216,71 @@ add_custom_target(run
     COMMENT "Running ${TARGET_NAME} in REPL mode"
 )
 
+# Test targets
+option(BUILD_TESTS "Build test suite" ON)
+
+if(BUILD_TESTS)
+    # Test for core emulator
+    add_executable(test_emulator
+        tests/test_emulator.cpp
+        ${CORE_SOURCES}
+    )
+    target_include_directories(test_emulator PRIVATE include tests)
+    
+    # Test for GUI (only if GUI is enabled)
+    if(BUILD_GUI)
+        add_executable(test_gui
+            tests/test_gui.cpp
+            src/gui/gui_application.cpp
+            ${CORE_SOURCES}
+        )
+        target_include_directories(test_gui PRIVATE 
+            include 
+            tests
+            ${SDL2_INCLUDE_DIRS}
+            ${IMGUI_DIR}
+            ${IMGUI_DIR}/backends
+        )
+        target_link_libraries(test_gui 
+            imgui
+            ${SDL2_LIBRARIES}
+            ${OPENGL_LIBRARIES}
+        )
+        if(SDL2_CFLAGS_OTHER)
+            target_compile_definitions(test_gui PRIVATE ${SDL2_CFLAGS_OTHER})
+        endif()
+        if(WIN32)
+            target_link_libraries(test_gui opengl32)
+        elseif(APPLE)
+            target_link_libraries(test_gui "-framework OpenGL")
+        else()
+            target_link_libraries(test_gui GL)
+        endif()
+    endif()
+    
+    # Test runner target
+    add_custom_target(test
+        COMMAND test_emulator
+        DEPENDS test_emulator
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Running emulator tests"
+    )
+    
+    if(BUILD_GUI)
+        add_custom_target(test-gui
+            COMMAND test_gui
+            DEPENDS test_gui
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Running GUI tests"
+        )
+    endif()
+    
+    add_custom_target(test-all
+        DEPENDS test_emulator $<$<BOOL:${BUILD_GUI}>:test_gui>
+        COMMENT "Running all tests"
+    )
+endif()
+
 add_custom_target(run-ide
     COMMAND ${TARGET_NAME} --ide
     DEPENDS ${TARGET_NAME}
@@ -278,15 +343,20 @@ add_custom_target(show-help
     COMMAND ${CMAKE_COMMAND} -E echo "  run-ide         - Run IDE mode"
     COMMAND ${CMAKE_COMMAND} -E echo "  run-gui         - Run GUI mode \\(if enabled\\)"
     COMMAND ${CMAKE_COMMAND} -E echo "  run-tui         - Instructions for TUI mode"
+    COMMAND ${CMAKE_COMMAND} -E echo "  test            - Run emulator tests"
+    COMMAND ${CMAKE_COMMAND} -E echo "  test-gui        - Run GUI tests \\(if enabled\\)"
+    COMMAND ${CMAKE_COMMAND} -E echo "  test-all        - Run all tests"
     COMMAND ${CMAKE_COMMAND} -E echo "  dist            - Create distribution package"
     COMMAND ${CMAKE_COMMAND} -E echo "  install         - Install to system"
     COMMAND ${CMAKE_COMMAND} -E echo "  clean           - Clean build files"
     COMMAND ${CMAKE_COMMAND} -E echo ""
     COMMAND ${CMAKE_COMMAND} -E echo "Build variables:"
     COMMAND ${CMAKE_COMMAND} -E echo "  CMAKE_BUILD_TYPE=Debug|Release"
+    COMMAND ${CMAKE_COMMAND} -E echo "  BUILD_TESTS=ON|OFF"
     COMMAND ${CMAKE_COMMAND} -E echo ""
     COMMAND ${CMAKE_COMMAND} -E echo "Examples:"
     COMMAND ${CMAKE_COMMAND} -E echo "  cmake -DCMAKE_BUILD_TYPE=Debug .."
+    COMMAND ${CMAKE_COMMAND} -E echo "  make test"
     COMMAND ${CMAKE_COMMAND} -E echo "  make run-ide"
     COMMAND ${CMAKE_COMMAND} -E echo "  make dist"
     COMMENT "Showing help information"
