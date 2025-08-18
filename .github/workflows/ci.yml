@@ -2,301 +2,294 @@ name: CI
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
   pull_request:
-    branches: [ main, dev ]
+    branches: [main, dev]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         build_type: [Debug, Release]
-        
+
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-    
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          build-essential \
-          cmake \
-          libsdl2-dev \
-          libgl1-mesa-dev \
-          libncurses5-dev \
-          clang-format \
-          clang-tidy
-    
-    - name: Create build directory
-      run: mkdir build
-    
-    - name: Configure CMake
-      run: |
-        cd build
-        cmake .. \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DBUILD_TESTS=ON
-    
-    - name: Build
-      run: |
-        cd build
-        make -j$(nproc)
-    
-    - name: Run tests
-      run: |
-        cd build
-        ./test_emulator
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            libsdl2-dev \
+            libgl1-mesa-dev \
+            libncurses5-dev \
+            clang-format \
+            clang-tidy
+
+      - name: Create build directory
+        run: mkdir build
+
+      - name: Configure CMake
+        run: |
+          cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DBUILD_TESTS=ON
+
+      - name: Build
+        run: |
+          cd build
+          make -j$(nproc)
+
+      - name: Run tests
+        run: |
+          cd build
+          ./test_emulator
 
   cross-platform-test:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        
+
     runs-on: ${{ matrix.os }}
-    
+
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-    
-    - name: Install dependencies (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          build-essential \
-          cmake \
-          libsdl2-dev \
-          libgl1-mesa-dev \
-          libncurses5-dev
-    
-    - name: Install dependencies (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
-        C:\vcpkg\bootstrap-vcpkg.bat
-        C:\vcpkg\vcpkg install sdl2:x64-windows
-        echo "CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      shell: powershell
-    
-    - name: Install dependencies (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        brew install sdl2 ncurses
-    
-    - name: Create build directory
-      run: mkdir build
-    
-    - name: Configure CMake
-      run: |
-        cd build
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-        else
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
-        fi
-      shell: bash
-    
-    - name: Build
-      run: |
-        cd build
-        cmake --build . --config Release
-    
-    - name: Test (Unix)
-      if: matrix.os != 'windows-latest'
-      run: |
-        cd build
-        ./test_emulator
-    
-    - name: Test (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        cd build
-        Release\test_emulator.exe
-        Release\test_gui.exe
-      shell: cmd
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
-    - name: Create portable package (Unix)
-      if: matrix.os != 'windows-latest'
-      run: |
-        cd build
-        mkdir -p release-artifacts
-        cp Im8086 test_emulator release-artifacts/ 2>/dev/null || true
-        if [ -f "test_gui" ]; then cp test_gui release-artifacts/; fi
-        cp ../samples/sample_*.txt release-artifacts/ 2>/dev/null || true
-        cp ../samples/tui/sample_*.asm release-artifacts/ 2>/dev/null || true
-        cp ../README.md release-artifacts/ 2>/dev/null || true
-        
-        # Bundle shared libraries for Linux
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ -f "Im8086" ]; then
-          mkdir -p release-artifacts/lib
-          echo "Detecting and bundling shared libraries..."
-          
-          # Get all required libraries
-          LIBS=$(ldd Im8086 | grep -E "(SDL2|ncurses|tinfo|GL)" | awk '{print $3}' | grep -v "not found" | sort -u)
-          
-          for lib in $LIBS; do
-            if [ -f "$lib" ]; then
-              echo "Bundling library: $lib"
-              cp "$lib" release-artifacts/lib/
-              # Also copy any symlinks or version variants
-              lib_name=$(basename "$lib")
-              lib_base=$(echo "$lib_name" | sed 's/\.so\..*/\.so/')
-              if [ "$lib_base" != "$lib_name" ]; then
-                lib_dir=$(dirname "$lib")
-                find "$lib_dir" -name "$lib_base*" -type f -exec cp {} release-artifacts/lib/ \; 2>/dev/null || true
+      - name: Install dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            libsdl2-dev \
+            libgl1-mesa-dev \
+            libncurses5-dev
+
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
+          C:\vcpkg\bootstrap-vcpkg.bat
+          C:\vcpkg\vcpkg install sdl2:x64-windows
+          echo "CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        shell: powershell
+
+      - name: Install dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install sdl2 ncurses
+
+      - name: Create build directory
+        run: mkdir build
+
+      - name: Configure CMake
+        run: |
+          cd build
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+          else
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+          fi
+        shell: bash
+
+      - name: Build
+        run: |
+          cd build
+          cmake --build . --config Release
+
+      - name: Test (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd build
+          ./test_emulator
+
+      - name: Test (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd build
+          Release\test_emulator.exe
+          Release\test_gui.exe
+        shell: cmd
+
+      - name: Create portable package (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd build
+          mkdir -p release-artifacts
+          cp Im8086 test_emulator release-artifacts/ 2>/dev/null || true
+          if [ -f "test_gui" ]; then cp test_gui release-artifacts/; fi
+          cp ../samples/sample_*.txt release-artifacts/ 2>/dev/null || true
+          cp ../samples/tui/sample_*.asm release-artifacts/ 2>/dev/null || true
+          cp ../README.md release-artifacts/ 2>/dev/null || true
+
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ -f "Im8086" ]; then
+            mkdir -p release-artifacts/lib
+            echo "Detecting and bundling shared libraries..."
+
+            LIBS=$(ldd Im8086 | grep -E "(SDL2|ncurses|tinfo|GL)" | awk '{print $3}' | grep -v "not found" | sort -u)
+            
+            for lib in $LIBS; do
+              if [ -f "$lib" ]; then
+                echo "Bundling library: $lib"
+                cp "$lib" release-artifacts/lib/
+                
+                lib_name=$(basename "$lib")
+                lib_base=$(echo "$lib_name" | sed 's/\.so\..*/\.so/')
+                if [ "$lib_base" != "$lib_name" ]; then
+                  lib_dir=$(dirname "$lib")
+                  find "$lib_dir" -name "$lib_base*" -type f -exec cp {} release-artifacts/lib/ \; 2>/dev/null || true
+                fi
               fi
+            done
+            
+            if [ -d "release-artifacts/lib" ] && [ "$(ls -A release-artifacts/lib 2>/dev/null)" ]; then
+              cat > release-artifacts/launch.sh << 'LAUNCHER_EOF'
+          #!/bin/bash
+          DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
+          exec "$DIR/Im8086" "$@"
+          LAUNCHER_EOF
+              chmod +x release-artifacts/launch.sh
+              echo "Created portable launcher with bundled libraries"
+              echo "Bundled libraries:"
+              ls -la release-artifacts/lib/
             fi
-          done
-          
-          if [ -d "release-artifacts/lib" ] && [ "$(ls -A release-artifacts/lib 2>/dev/null)" ]; then
-            cat > release-artifacts/launch.sh << 'LAUNCHER_EOF'
-        #!/bin/bash
-        DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
-        exec "$DIR/Im8086" "$@"
-        LAUNCHER_EOF
-            chmod +x release-artifacts/launch.sh
-            echo "Created portable launcher with bundled libraries"
-            echo "Bundled libraries:"
-            ls -la release-artifacts/lib/
           fi
-        fi
-        
-        # Bundle shared libraries for macOS  
-        if [ "${{ matrix.os }}" = "macos-latest" ] && [ -f "Im8086" ]; then
-          mkdir -p release-artifacts/lib
-          echo "Detecting and bundling shared libraries for macOS..."
-          
-          # Get all required libraries
-          LIBS=$(otool -L Im8086 | grep -E "(SDL2|ncurses|tinfo)" | awk '{print $1}' | grep -v "Im8086" | grep -v "/usr/lib" | grep -v "/System/Library")
-          
-          for lib in $LIBS; do
-            if [ -f "$lib" ]; then
-              echo "Bundling library: $lib"
-              cp "$lib" release-artifacts/lib/
-            fi
-          done
-          
-          if [ -d "release-artifacts/lib" ] && [ "$(ls -A release-artifacts/lib 2>/dev/null)" ]; then
-            cat > release-artifacts/launch.sh << 'LAUNCHER_EOF'
-        #!/bin/bash
-        DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        export DYLD_LIBRARY_PATH="$DIR/lib:$DYLD_LIBRARY_PATH"
-        exec "$DIR/Im8086" "$@"
-        LAUNCHER_EOF
-            chmod +x release-artifacts/launch.sh
-            echo "Created portable launcher with bundled libraries for macOS"
-            echo "Bundled libraries:"
-            ls -la release-artifacts/lib/
-          fi
-        fi
-        
-        cd release-artifacts
-        tar -czf ../Im8086-${{ matrix.os }}.tar.gz *
 
-    - name: Create portable package (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        cd build
-        mkdir release-artifacts
-        copy Release\Im8086.exe release-artifacts\ 2>nul
-        copy Release\test_emulator.exe release-artifacts\ 2>nul
-        copy Release\test_gui.exe release-artifacts\ 2>nul
-        copy ..\samples\sample_*.txt release-artifacts\ 2>nul
-        copy ..\samples\tui\sample_*.asm release-artifacts\ 2>nul
-        copy ..\README.md release-artifacts\ 2>nul
-        
-        echo Detecting and bundling DLL files...
-        
-        REM Bundle SDL2 and related DLLs
-        if exist "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" (
-          copy "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" release-artifacts\
-          echo SDL2.dll bundled
-        )
-        if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_ttf.dll" (
-          copy "C:\vcpkg\installed\x64-windows\bin\SDL2_ttf.dll" release-artifacts\
-          echo SDL2_ttf.dll bundled
-        )
-        if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_image.dll" (
-          copy "C:\vcpkg\installed\x64-windows\bin\SDL2_image.dll" release-artifacts\
-          echo SDL2_image.dll bundled
-        )
-        if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_mixer.dll" (
-          copy "C:\vcpkg\installed\x64-windows\bin\SDL2_mixer.dll" release-artifacts\
-          echo SDL2_mixer.dll bundled
-        )
-        
-        REM Bundle any additional runtime dependencies
-        for %%f in ("C:\vcpkg\installed\x64-windows\bin\*.dll") do (
-          if /I "%%~nxf" NEQ "SDL2.dll" (
-            copy "%%f" release-artifacts\ 2>nul && echo %%~nxf bundled
+          if [ "${{ matrix.os }}" = "macos-latest" ] && [ -f "Im8086" ]; then
+            mkdir -p release-artifacts/lib
+            echo "Detecting and bundling shared libraries for macOS..."
+
+            LIBS=$(otool -L Im8086 | grep -E "(SDL2|ncurses|tinfo)" | awk '{print $1}' | grep -v "Im8086" | grep -v "/usr/lib" | grep -v "/System/Library")
+            
+            for lib in $LIBS; do
+              if [ -f "$lib" ]; then
+                echo "Bundling library: $lib"
+                cp "$lib" release-artifacts/lib/
+              fi
+            done
+            
+            if [ -d "release-artifacts/lib" ] && [ "$(ls -A release-artifacts/lib 2>/dev/null)" ]; then
+              cat > release-artifacts/launch.sh << 'LAUNCHER_EOF'
+          #!/bin/bash
+          DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          export DYLD_LIBRARY_PATH="$DIR/lib:$DYLD_LIBRARY_PATH"
+          exec "$DIR/Im8086" "$@"
+          LAUNCHER_EOF
+              chmod +x release-artifacts/launch.sh
+              echo "Created portable launcher with bundled libraries for macOS"
+              echo "Bundled libraries:"
+              ls -la release-artifacts/lib/
+            fi
+          fi
+
+          cd release-artifacts
+          tar -czf ../Im8086-${{ matrix.os }}.tar.gz *
+
+      - name: Create portable package (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd build
+          mkdir release-artifacts
+          copy Release\Im8086.exe release-artifacts\ 2>nul
+          copy Release\test_emulator.exe release-artifacts\ 2>nul
+          copy Release\test_gui.exe release-artifacts\ 2>nul
+          copy ..\samples\sample_*.txt release-artifacts\ 2>nul
+          copy ..\samples\tui\sample_*.asm release-artifacts\ 2>nul
+          copy ..\README.md release-artifacts\ 2>nul
+          echo Detecting and bundling DLL files...
+
+          if exist "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" (
+            copy "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" release-artifacts\
+            echo SDL2.dll bundled
           )
-        )
-        
-        echo Creating portable launcher...
-        echo @echo off > release-artifacts\launch.bat
-        echo echo Starting Im8086 Emulator... >> release-artifacts\launch.bat
-        echo %%~dp0\Im8086.exe %%* >> release-artifacts\launch.bat
-        
-        echo Bundled DLL files:
-        dir /b release-artifacts\*.dll 2>nul || echo No DLL files found
-        
-        cd release-artifacts
-        tar -czf ..\Im8086-${{ matrix.os }}.tar.gz *
-      shell: cmd
+          if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_ttf.dll" (
+            copy "C:\vcpkg\installed\x64-windows\bin\SDL2_ttf.dll" release-artifacts\
+            echo SDL2_ttf.dll bundled
+          )
+          if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_image.dll" (
+            copy "C:\vcpkg\installed\x64-windows\bin\SDL2_image.dll" release-artifacts\
+            echo SDL2_image.dll bundled
+          )
+          if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_mixer.dll" (
+            copy "C:\vcpkg\installed\x64-windows\bin\SDL2_mixer.dll" release-artifacts\
+            echo SDL2_mixer.dll bundled
+          )
 
-    - name: Upload release artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: Im8086-${{ matrix.os }}
-        path: build/Im8086-${{ matrix.os }}.tar.gz
-        retention-days: 3
+          for %%f in ("C:\vcpkg\installed\x64-windows\bin\*.dll") do (
+            if /I "%%~nxf" NEQ "SDL2.dll" (
+              copy "%%f" release-artifacts\ 2>nul && echo %%~nxf bundled
+            )
+          )
+
+          echo Creating portable launcher...
+          echo @echo off > release-artifacts\launch.bat
+          echo echo Starting Im8086 Emulator... >> release-artifacts\launch.bat
+          echo %%~dp0\Im8086.exe %%* >> release-artifacts\launch.bat
+
+          echo Bundled DLL files:
+          dir /b release-artifacts\*.dll 2>nul || echo No DLL files found
+
+          cd release-artifacts
+          tar -czf ..\Im8086-${{ matrix.os }}.tar.gz *
+        shell: cmd
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Im8086-${{ matrix.os }}
+          path: build/Im8086-${{ matrix.os }}.tar.gz
+          retention-days: 3
 
   release:
     needs: [build-and-test, cross-platform-test]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    
-    - name: Get version from CMakeLists.txt
-      id: get_version
-      run: |
-        VERSION=$(grep -E "^project\(" CMakeLists.txt | grep -oE "VERSION [0-9]+\.[0-9]+\.[0-9]+" | cut -d' ' -f2)
-        if [ -z "$VERSION" ]; then
-          VERSION="1.0.0"
-        fi
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "tag=v$VERSION" >> $GITHUB_OUTPUT
-    
-    - name: Create and push tag
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git tag -a "${{ steps.get_version.outputs.tag }}" -m "Release ${{ steps.get_version.outputs.tag }}"
-        git push origin "${{ steps.get_version.outputs.tag }}" || echo "Tag already exists"
-    
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: artifacts
-    
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ steps.get_version.outputs.tag }}
-        name: Release ${{ steps.get_version.outputs.tag }}
-        files: artifacts/*/Im8086-*.tar.gz
-        generate_release_notes: true
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get version from CMakeLists.txt
+        id: get_version
+        run: |
+          VERSION=$(grep -E "^project\(" CMakeLists.txt | grep -oE "VERSION [0-9]+\.[0-9]+\.[0-9]+" | cut -d' ' -f2)
+          if [ -z "$VERSION" ]; then
+            VERSION="1.0.0"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create and push tag
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a "${{ steps.get_version.outputs.tag }}" -m "Release ${{ steps.get_version.outputs.tag }}"
+          git push origin "${{ steps.get_version.outputs.tag }}" || echo "Tag already exists"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          name: Release ${{ steps.get_version.outputs.tag }}
+          files: artifacts/*/Im8086-*.tar.gz
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

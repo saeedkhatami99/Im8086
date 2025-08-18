@@ -2,6 +2,8 @@
 build
 build-static
 build-portable
+build-ultra-portable
+build-test
 obj
 -p
 *.temp
