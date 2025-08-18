@@ -11,34 +11,37 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(TARGET_NAME "8086emu")
+option(BUILD_STATIC "Build static executable" OFF)
+option(BUILD_PORTABLE "Build portable executable with bundled libraries" OFF)
+set(TARGET_NAME "Im8086")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
+
+if(BUILD_STATIC AND NOT WIN32)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -static-libgcc -static-libstdc++")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+endif()
+
 if (MSVC)
-  
   add_compile_options(/W4 /permissive-)
+  if(BUILD_STATIC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  endif()
 else()
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 include_directories(include)
-
-
 find_package(PkgConfig QUIET)
-
-
 find_package(SDL2 QUIET)
-
 
 if(NOT SDL2_FOUND)
     find_package(SDL2 QUIET CONFIG)
 endif()
 
-
 if(NOT SDL2_FOUND AND PkgConfig_FOUND)
     pkg_check_modules(SDL2 QUIET sdl2)
 endif()
-
 
 if(NOT SDL2_FOUND AND WIN32)
     
@@ -51,7 +54,7 @@ if(NOT SDL2_FOUND AND WIN32)
         /usr/local
         /usr
     )
-    
+
     find_library(SDL2_LIBRARIES
         NAMES SDL2 SDL2main
         HINTS
@@ -66,6 +69,27 @@ if(NOT SDL2_FOUND AND WIN32)
     if(SDL2_INCLUDE_DIRS AND SDL2_LIBRARIES)
         set(SDL2_FOUND TRUE)
         message(STATUS "Found SDL2 (Windows): ${SDL2_LIBRARIES}")
+    endif()
+endif()
+
+if(BUILD_STATIC AND SDL2_FOUND)
+    if(WIN32)
+        
+        find_library(SDL2_STATIC_LIB
+            NAMES SDL2-static SDL2main
+            HINTS ${SDL2_LIBRARY_DIRS}
+            PATH_SUFFIXES lib lib64
+        )
+        if(SDL2_STATIC_LIB)
+            set(SDL2_LIBRARIES ${SDL2_STATIC_LIB})
+            message(STATUS "Using static SDL2: ${SDL2_STATIC_LIB}")
+        endif()
+    elseif(UNIX)
+        
+        set(SDL2_STATIC_DEPS pthread dl m rt)
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            list(APPEND SDL2_STATIC_DEPS asound pulse X11 Xext Xcursor Xinerama Xi Xrandr Xss Xxf86vm)
+        endif()
     endif()
 endif()
 
@@ -130,7 +154,6 @@ if(BUILD_GUI)
             ${IMGUI_DIR} 
             ${IMGUI_DIR}/backends
         )
-        
         
         if(TARGET SDL2::SDL2)
             target_link_libraries(imgui PUBLIC SDL2::SDL2)
@@ -238,6 +261,15 @@ endif()
 
 if(LINK_LIBRARIES)
     target_link_libraries(${TARGET_NAME} ${LINK_LIBRARIES})
+    if(BUILD_STATIC AND BUILD_GUI AND SDL2_FOUND)
+        if(WIN32)
+            
+            target_link_libraries(${TARGET_NAME} winmm setupapi version imm32)
+        elseif(UNIX AND SDL2_STATIC_DEPS)
+            
+            target_link_libraries(${TARGET_NAME} ${SDL2_STATIC_DEPS})
+        endif()
+    endif()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

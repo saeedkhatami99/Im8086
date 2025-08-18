@@ -50,20 +50,6 @@ jobs:
       run: |
         cd build
         ./test_emulator
-        # ./test_gui
-    
-    # - name: Check code formatting
-    #   run: |
-    #     find src include tests -name "*.cpp" -o -name "*.h" | \
-    #     xargs clang-format -style=file --dry-run --Werror
-    #   
-    # - name: Run static analysis
-    #   run: |
-    #     cd build
-    #     # Run clang-tidy on main source files
-    #     find ../src ../include -name "*.cpp" -not -path "*/third_party/*" | \
-    #     head -5 | \
-    #     xargs clang-tidy -p . --warnings-as-errors=*
 
   cross-platform-test:
     strategy:
@@ -134,38 +120,68 @@ jobs:
         Release\test_gui.exe
       shell: cmd
 
-    - name: Prepare release artifacts (Unix)
+    - name: Create portable package (Unix)
       if: matrix.os != 'windows-latest'
       run: |
         cd build
         mkdir -p release-artifacts
-        cp 8086emu test_emulator test_gui release-artifacts/ 2>/dev/null || true
+        cp Im8086 test_emulator release-artifacts/ 2>/dev/null || true
+        if [ -f "test_gui" ]; then cp test_gui release-artifacts/; fi
         cp ../samples/sample_*.txt release-artifacts/ 2>/dev/null || true
         cp ../samples/tui/sample_*.asm release-artifacts/ 2>/dev/null || true
         cp ../README.md release-artifacts/ 2>/dev/null || true
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ -f "Im8086" ]; then
+          mkdir -p release-artifacts/lib
+          SDL2_LIB=$(ldd Im8086 | grep SDL2 | awk '{print $3}' | head -1)
+          NCURSES_LIB=$(ldd Im8086 | grep ncurses | awk '{print $3}' | head -1)
+          TINFO_LIB=$(ldd Im8086 | grep tinfo | awk '{print $3}' | head -1)
+          for lib in "$SDL2_LIB" "$NCURSES_LIB" "$TINFO_LIB"; do
+            if [ -f "$lib" ]; then
+              echo "Bundling library: $lib"
+              cp "$lib" release-artifacts/lib/
+            fi
+          done
+          if [ -d "release-artifacts/lib" ] && [ "$(ls -A release-artifacts/lib 2>/dev/null)" ]; then
+            cat > release-artifacts/launch.sh << 'LAUNCHER_EOF'
+            #!/bin/bash
+            DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+            export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
+            exec "$DIR/Im8086" "$@"
+            LAUNCHER_EOF
+            chmod +x release-artifacts/launch.sh
+            echo "Created portable launcher with bundled libraries"
+          fi
+        fi
         cd release-artifacts
-        tar -czf ../8086emu-${{ matrix.os }}.tar.gz *
+        tar -czf ../Im8086-${{ matrix.os }}.tar.gz *
 
-    - name: Prepare release artifacts (Windows)
+    - name: Create portable package (Windows)
       if: matrix.os == 'windows-latest'
       run: |
         cd build
         mkdir release-artifacts
-        copy Release\8086emu.exe release-artifacts\ 2>nul
+        copy Release\Im8086.exe release-artifacts\ 2>nul
         copy Release\test_emulator.exe release-artifacts\ 2>nul
         copy Release\test_gui.exe release-artifacts\ 2>nul
         copy ..\samples\sample_*.txt release-artifacts\ 2>nul
         copy ..\samples\tui\sample_*.asm release-artifacts\ 2>nul
         copy ..\README.md release-artifacts\ 2>nul
+        if exist "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" (
+          copy "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" release-artifacts\
+          echo SDL2.dll bundled for portable distribution
+        )
+        echo @echo off > release-artifacts\launch.bat
+        echo echo Starting Im8086 Emulator... >> release-artifacts\launch.bat
+        echo %%~dp0\Im8086.exe %%* >> release-artifacts\launch.bat
         cd release-artifacts
-        tar -czf ..\8086emu-${{ matrix.os }}.tar.gz *
+        tar -czf ..\Im8086-${{ matrix.os }}.tar.gz *
       shell: cmd
 
     - name: Upload release artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: 8086emu-${{ matrix.os }}
-        path: build/8086emu-${{ matrix.os }}.tar.gz
+        name: Im8086-${{ matrix.os }}
+        path: build/Im8086-${{ matrix.os }}.tar.gz
         retention-days: 3
 
   release:
@@ -205,7 +221,7 @@ jobs:
       with:
         tag_name: ${{ steps.get_version.outputs.tag }}
         name: Release ${{ steps.get_version.outputs.tag }}
-        files: artifacts/*/8086emu-*.tar.gz
+        files: artifacts/*/Im8086-*.tar.gz
         generate_release_notes: true
         draft: false
         prerelease: false

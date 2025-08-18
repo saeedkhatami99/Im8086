@@ -1,4 +1,4 @@
-# 8086 Emulator
+# Im8086
 
 A comprehensive Intel 8086 microprocessor emulator with both GUI and TUI interfaces, featuring real-time debugging, memory inspection, and interactive assembly editing.
 
@@ -95,15 +95,15 @@ make test
 ### Command Line Interface
 
 ```bash
-./8086emu
-./8086emu --help
+./Im8086
+./Im8086 --help
 ```
 
 ### GUI Mode
 
 ```bash
-./8086emu --gui
-./8086emu --gui program.asm
+./Im8086 --gui
+./Im8086 --gui program.asm
 ```
 
 **GUI Keyboard Shortcuts:**
@@ -121,8 +121,8 @@ make test
 ### TUI Mode
 
 ```bash
-./8086emu --ide
-./8086emu --tui program.asm
+./Im8086 --ide
+./Im8086 --tui program.asm
 ```
 
 **TUI Controls:**
