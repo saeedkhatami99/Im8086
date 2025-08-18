@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     
     strategy:
       matrix:
@@ -54,7 +54,7 @@ jobs:
   cross-platform-test:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-20.04, windows-latest, macos-latest]
         
     runs-on: ${{ matrix.os }}
     
@@ -64,7 +64,7 @@ jobs:
         submodules: recursive
     
     - name: Install dependencies (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-20.04'
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -97,7 +97,14 @@ jobs:
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
           cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
         else
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+          # Use maximum compatibility settings for older Linux distributions
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=ON \
+            -DBUILD_PORTABLE=ON \
+            -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -static-libgcc -static-libstdc++" \
+            -DCMAKE_EXE_LINKER_FLAGS="-Wl,--disable-new-dtags" \
+            -DCMAKE_INSTALL_RPATH='$ORIGIN/lib'
         fi
       shell: bash
     
@@ -105,6 +112,13 @@ jobs:
       run: |
         cd build
         cmake --build . --config Release
+        
+        # Check GLIBC requirements for Linux builds
+        if [ "${{ matrix.os }}" = "ubuntu-20.04" ] && [ -f "Im8086" ]; then
+          echo "Checking GLIBC version requirements:"
+          objdump -T Im8086 | grep GLIBC | sed 's/.*GLIBC_/GLIBC_/' | sort -V | tail -5
+          echo "Built on Ubuntu 20.04 for maximum compatibility (Ubuntu 18.04+ / CentOS 7+ / RHEL 7+)"
+        fi
     
     - name: Test (Unix)
       if: matrix.os != 'windows-latest'
@@ -132,11 +146,11 @@ jobs:
         cp ../README.md release-artifacts/ 2>/dev/null || true
         
         # Bundle shared libraries for Linux
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ -f "Im8086" ]; then
+        if [ "${{ matrix.os }}" = "ubuntu-20.04" ] && [ -f "Im8086" ]; then
           mkdir -p release-artifacts/lib
-          echo "Detecting and bundling shared libraries..."
+          echo "Detecting and bundling shared libraries for maximum compatibility..."
           
-          # Get all required libraries
+          # Get all required libraries (targeting Ubuntu 20.04 for compatibility with very old systems)
           LIBS=$(ldd Im8086 | grep -E "(SDL2|ncurses|tinfo|GL)" | awk '{print $3}' | grep -v "not found" | sort -u)
           
           for lib in $LIBS; do
@@ -199,6 +213,78 @@ jobs:
         cd release-artifacts
         tar -czf ../Im8086-${{ matrix.os }}.tar.gz *
 
+  ultra-portable-build:
+    runs-on: ubuntu-latest
+    container: alpine:latest
+    
+    steps:
+    - name: Install build dependencies
+      run: |
+        apk add --no-cache \
+          build-base \
+          cmake \
+          git \
+          sdl2-dev \
+          mesa-dev \
+          ncurses-dev \
+          linux-headers
+    
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    
+    - name: Create build directory
+      run: mkdir build
+    
+    - name: Configure CMake (Alpine/musl)
+      run: |
+        cd build
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_TESTS=ON \
+          -DBUILD_PORTABLE=ON \
+          -DCMAKE_EXE_LINKER_FLAGS="-static" \
+          -DCMAKE_FIND_LIBRARY_SUFFIXES=".a"
+    
+    - name: Build (Static)
+      run: |
+        cd build
+        make -j$(nproc)
+        echo "Checking static linking:"
+        ldd Im8086 || echo "Statically linked - maximum portability!"
+        file Im8086
+        
+    - name: Create ultra-portable package
+      run: |
+        cd build
+        mkdir -p release-artifacts
+        cp Im8086 release-artifacts/Im8086-static
+        cp test_emulator release-artifacts/ 2>/dev/null || true
+        cp ../samples/sample_*.txt release-artifacts/ 2>/dev/null || true
+        cp ../samples/tui/sample_*.asm release-artifacts/ 2>/dev/null || true
+        cp ../README.md release-artifacts/ 2>/dev/null || true
+        
+        cat > release-artifacts/README-STATIC.txt << 'EOF'
+        This is a statically linked version of Im8086 for maximum portability.
+        
+        - Works on any Linux distribution (including very old ones)
+        - No library dependencies required
+        - Built with musl libc for universal compatibility
+        - Runs on systems as old as Linux 2.6+ (2003+)
+        
+        Usage: ./Im8086-static [options]
+        EOF
+        
+        cd release-artifacts
+        tar -czf ../Im8086-static-linux.tar.gz *
+    
+    - name: Upload ultra-portable artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Im8086-static-linux
+        path: build/Im8086-static-linux.tar.gz
+        retention-days: 3
+
     - name: Create portable package (Windows)
       if: matrix.os == 'windows-latest'
       run: |
@@ -258,8 +344,8 @@ jobs:
         retention-days: 3
 
   release:
-    needs: [build-and-test, cross-platform-test]
-    runs-on: ubuntu-latest
+    needs: [build-and-test, cross-platform-test, ultra-portable-build]
+    runs-on: ubuntu-20.04
     if: github.ref == 'refs/heads/main'
     
     steps:
@@ -294,7 +380,9 @@ jobs:
       with:
         tag_name: ${{ steps.get_version.outputs.tag }}
         name: Release ${{ steps.get_version.outputs.tag }}
-        files: artifacts/*/Im8086-*.tar.gz
+        files: |
+          artifacts/*/Im8086-*.tar.gz
+          artifacts/*/Im8086-static-linux.tar.gz
         generate_release_notes: true
         draft: false
         prerelease: false

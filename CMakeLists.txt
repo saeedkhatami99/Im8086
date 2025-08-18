@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(Im8086 
-    VERSION 1.0.0
+    VERSION 1.1.0
     DESCRIPTION "Intel 8086 Microprocessor Emulator with GUI and TUI"
     LANGUAGES CXX
 )
@@ -20,6 +20,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 if(BUILD_STATIC AND NOT WIN32)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -static-libgcc -static-libstdc++")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+    set(BUILD_SHARED_LIBS OFF)
+    message(STATUS "Static build enabled - maximum portability")
 endif()
 
 if (MSVC)
