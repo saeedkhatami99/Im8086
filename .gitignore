@@ -1,9 +1,10 @@
 .vscode
 build
+build-static
+build-portable
 obj
 -p
 *.temp
-*.bat
 TODO
 REQ
 migrate_to_cmake.sh
