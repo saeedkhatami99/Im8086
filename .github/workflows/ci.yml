@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
@@ -54,7 +54,7 @@ jobs:
   cross-platform-test:
     strategy:
       matrix:
-        os: [ubuntu-20.04, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -64,7 +64,7 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -131,7 +131,7 @@ jobs:
           cp ../samples/tui/sample_*.asm release-artifacts/ 2>/dev/null || true
           cp ../README.md release-artifacts/ 2>/dev/null || true
 
-          if [ "${{ matrix.os }}" = "ubuntu-20.04" ] && [ -f "Im8086" ]; then
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ -f "Im8086" ]; then
             mkdir -p release-artifacts/lib
             echo "Detecting and bundling shared libraries..."
 
@@ -252,7 +252,7 @@ jobs:
 
   release:
     needs: [build-and-test, cross-platform-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
     steps:
