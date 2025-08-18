@@ -130,28 +130,72 @@ jobs:
         cp ../samples/sample_*.txt release-artifacts/ 2>/dev/null || true
         cp ../samples/tui/sample_*.asm release-artifacts/ 2>/dev/null || true
         cp ../README.md release-artifacts/ 2>/dev/null || true
+        
+        # Bundle shared libraries for Linux
         if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ -f "Im8086" ]; then
           mkdir -p release-artifacts/lib
-          SDL2_LIB=$(ldd Im8086 | grep SDL2 | awk '{print $3}' | head -1)
-          NCURSES_LIB=$(ldd Im8086 | grep ncurses | awk '{print $3}' | head -1)
-          TINFO_LIB=$(ldd Im8086 | grep tinfo | awk '{print $3}' | head -1)
-          for lib in "$SDL2_LIB" "$NCURSES_LIB" "$TINFO_LIB"; do
+          echo "Detecting and bundling shared libraries..."
+          
+          # Get all required libraries
+          LIBS=$(ldd Im8086 | grep -E "(SDL2|ncurses|tinfo|GL)" | awk '{print $3}' | grep -v "not found" | sort -u)
+          
+          for lib in $LIBS; do
+            if [ -f "$lib" ]; then
+              echo "Bundling library: $lib"
+              cp "$lib" release-artifacts/lib/
+              # Also copy any symlinks or version variants
+              lib_name=$(basename "$lib")
+              lib_base=$(echo "$lib_name" | sed 's/\.so\..*/\.so/')
+              if [ "$lib_base" != "$lib_name" ]; then
+                lib_dir=$(dirname "$lib")
+                find "$lib_dir" -name "$lib_base*" -type f -exec cp {} release-artifacts/lib/ \; 2>/dev/null || true
+              fi
+            fi
+          done
+          
+          if [ -d "release-artifacts/lib" ] && [ "$(ls -A release-artifacts/lib 2>/dev/null)" ]; then
+            cat > release-artifacts/launch.sh << 'LAUNCHER_EOF'
+        #!/bin/bash
+        DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
+        exec "$DIR/Im8086" "$@"
+        LAUNCHER_EOF
+            chmod +x release-artifacts/launch.sh
+            echo "Created portable launcher with bundled libraries"
+            echo "Bundled libraries:"
+            ls -la release-artifacts/lib/
+          fi
+        fi
+        
+        # Bundle shared libraries for macOS  
+        if [ "${{ matrix.os }}" = "macos-latest" ] && [ -f "Im8086" ]; then
+          mkdir -p release-artifacts/lib
+          echo "Detecting and bundling shared libraries for macOS..."
+          
+          # Get all required libraries
+          LIBS=$(otool -L Im8086 | grep -E "(SDL2|ncurses|tinfo)" | awk '{print $1}' | grep -v "Im8086" | grep -v "/usr/lib" | grep -v "/System/Library")
+          
+          for lib in $LIBS; do
             if [ -f "$lib" ]; then
               echo "Bundling library: $lib"
               cp "$lib" release-artifacts/lib/
             fi
           done
+          
           if [ -d "release-artifacts/lib" ] && [ "$(ls -A release-artifacts/lib 2>/dev/null)" ]; then
             cat > release-artifacts/launch.sh << 'LAUNCHER_EOF'
-            #!/bin/bash
-            DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-            export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
-            exec "$DIR/Im8086" "$@"
-            LAUNCHER_EOF
+        #!/bin/bash
+        DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        export DYLD_LIBRARY_PATH="$DIR/lib:$DYLD_LIBRARY_PATH"
+        exec "$DIR/Im8086" "$@"
+        LAUNCHER_EOF
             chmod +x release-artifacts/launch.sh
-            echo "Created portable launcher with bundled libraries"
+            echo "Created portable launcher with bundled libraries for macOS"
+            echo "Bundled libraries:"
+            ls -la release-artifacts/lib/
           fi
         fi
+        
         cd release-artifacts
         tar -czf ../Im8086-${{ matrix.os }}.tar.gz *
 
@@ -166,13 +210,42 @@ jobs:
         copy ..\samples\sample_*.txt release-artifacts\ 2>nul
         copy ..\samples\tui\sample_*.asm release-artifacts\ 2>nul
         copy ..\README.md release-artifacts\ 2>nul
+        
+        echo Detecting and bundling DLL files...
+        
+        REM Bundle SDL2 and related DLLs
         if exist "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" (
           copy "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" release-artifacts\
-          echo SDL2.dll bundled for portable distribution
+          echo SDL2.dll bundled
         )
+        if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_ttf.dll" (
+          copy "C:\vcpkg\installed\x64-windows\bin\SDL2_ttf.dll" release-artifacts\
+          echo SDL2_ttf.dll bundled
+        )
+        if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_image.dll" (
+          copy "C:\vcpkg\installed\x64-windows\bin\SDL2_image.dll" release-artifacts\
+          echo SDL2_image.dll bundled
+        )
+        if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_mixer.dll" (
+          copy "C:\vcpkg\installed\x64-windows\bin\SDL2_mixer.dll" release-artifacts\
+          echo SDL2_mixer.dll bundled
+        )
+        
+        REM Bundle any additional runtime dependencies
+        for %%f in ("C:\vcpkg\installed\x64-windows\bin\*.dll") do (
+          if /I "%%~nxf" NEQ "SDL2.dll" (
+            copy "%%f" release-artifacts\ 2>nul && echo %%~nxf bundled
+          )
+        )
+        
+        echo Creating portable launcher...
         echo @echo off > release-artifacts\launch.bat
         echo echo Starting Im8086 Emulator... >> release-artifacts\launch.bat
         echo %%~dp0\Im8086.exe %%* >> release-artifacts\launch.bat
+        
+        echo Bundled DLL files:
+        dir /b release-artifacts\*.dll 2>nul || echo No DLL files found
+        
         cd release-artifacts
         tar -czf ..\Im8086-${{ matrix.os }}.tar.gz *
       shell: cmd
