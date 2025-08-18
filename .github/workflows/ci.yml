@@ -263,10 +263,17 @@ jobs:
       - name: Get version from CMakeLists.txt
         id: get_version
         run: |
-          VERSION=$(grep -E "^project\(" CMakeLists.txt | grep -oE "VERSION [0-9]+\.[0-9]+\.[0-9]+" | cut -d' ' -f2)
+          # Extract version from CMakeLists.txt (handles multi-line project declaration)
+          VERSION=$(awk '/^project\(/,/\)/ {if(/VERSION/) {gsub(/.*VERSION /, ""); gsub(/ .*/, ""); print; exit}}' CMakeLists.txt)
+          
           if [ -z "$VERSION" ]; then
-            VERSION="1.0.0"
+            # If version extraction fails, use timestamp-based version
+            TIMESTAMP=$(date '+%Y%m%d%H%M%S')
+            VERSION="dev-$TIMESTAMP"
+            echo "⚠️  Could not extract version from CMakeLists.txt, using timestamp-based version"
           fi
+          
+          echo "Detected version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
@@ -274,8 +281,17 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git tag -a "${{ steps.get_version.outputs.tag }}" -m "Release ${{ steps.get_version.outputs.tag }}"
-          git push origin "${{ steps.get_version.outputs.tag }}" || echo "Tag already exists"
+          TAG="${{ steps.get_version.outputs.tag }}"
+          echo "Creating tag: $TAG"
+          
+          # Check if tag already exists
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping creation"
+          else
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+            echo "Tag $TAG created and pushed successfully"
+          fi
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -289,7 +305,7 @@ jobs:
           name: Release ${{ steps.get_version.outputs.tag }}
           files: artifacts/*/Im8086-*.tar.gz
           generate_release_notes: true
-          draft: false
+          draft: true
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
