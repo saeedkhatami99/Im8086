@@ -50,7 +50,7 @@ class GUIApplication {
 
     int memoryViewStart = 0;
     int memoryViewSize = 256;
-    int stackViewSize = 32;
+    int stackViewSize = 16;
 
     bool assemblyEditorModified = false;
     std::string assemblyEditorBuffer;

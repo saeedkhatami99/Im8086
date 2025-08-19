@@ -263,11 +263,9 @@ jobs:
       - name: Get version from CMakeLists.txt
         id: get_version
         run: |
-          # Extract version from CMakeLists.txt (handles multi-line project declaration)
           VERSION=$(awk '/^project\(/,/\)/ {if(/VERSION/) {gsub(/.*VERSION /, ""); gsub(/ .*/, ""); print; exit}}' CMakeLists.txt)
           
           if [ -z "$VERSION" ]; then
-            # If version extraction fails, use timestamp-based version
             TIMESTAMP=$(date '+%Y%m%d%H%M%S')
             VERSION="dev-$TIMESTAMP"
             echo "⚠️  Could not extract version from CMakeLists.txt, using timestamp-based version"
@@ -284,7 +282,6 @@ jobs:
           TAG="${{ steps.get_version.outputs.tag }}"
           echo "Creating tag: $TAG"
           
-          # Check if tag already exists
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists, skipping creation"
           else

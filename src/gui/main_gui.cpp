@@ -11,8 +11,8 @@ int main_gui(int argc, char* argv[]) {
 
     std::string window_title = "Im8086 Emulator v" + std::to_string(PROJECT_VERSION_MAJOR) + "." +
                                std::to_string(PROJECT_VERSION_MINOR) + "." +
-                               std::to_string(PROJECT_VERSION_PATCH) +
-                               " - Intel 8086 Microprocessor Emulator";
+                               std::to_string(PROJECT_VERSION_PATCH);
+    //    " - Intel 8086 Microprocessor Emulator";
 
     GUIApplication app;
     if (!app.initialize(1280, 720, window_title)) {

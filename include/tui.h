@@ -26,10 +26,9 @@ class EmulatorTUI {
 
     void draw();
     void drawCode(int h, int w);
-    void drawInspector(int h, int w);
-    void drawRegisters(int starty, int startx, int w);
-    void drawStack(int starty, int startx, int w);
-    void drawMemory(int starty, int startx, int w);
+    void drawRegisters(int starty, int startx, int w, int h);
+    void drawStack(int starty, int startx, int w, int h);
+    void drawMemory(int starty, int startx, int w, int h);
     void drawLabels(int h, int w);
     void toggleBreakpoint();
     void step();
