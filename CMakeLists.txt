@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(Im8086 
-    VERSION 1.1.0
+    VERSION 1.1.1
     DESCRIPTION "Intel 8086 Microprocessor Emulator with GUI and TUI"
     LANGUAGES CXX
 )
