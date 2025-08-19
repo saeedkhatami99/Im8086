@@ -53,7 +53,7 @@ void ProcessorControlInstructions::hlt(const std::vector<std::string>& operands)
     if (!operands.empty())
         throw std::runtime_error("HLT takes no operands");
     std::cout << "CPU halted. Program terminated.\n";
-    exit(0);
+    // exit(0);
 }
 
 void ProcessorControlInstructions::wait(const std::vector<std::string>& operands) {
