@@ -17,8 +17,8 @@ if [ -d "$PROJECT_ROOT/.git" ] && [ -f "$PROJECT_ROOT/.gitmodules" ]; then
     else
         echo "ImGui submodule already exists and is populated"
         cd "$IMGUI_DIR"
-        if git describe --tags 2>/dev/null | grep -q "v1.90.1"; then
-            echo "ImGui v1.90.1 confirmed"
+        if git describe --tags 2>/dev/null | grep -q "v1.90.1-docking"; then
+            echo "ImGui v1.90.1-docking confirmed"
         else
             echo "Updating ImGui submodule to correct version..."
             cd "$PROJECT_ROOT"
@@ -29,9 +29,9 @@ else
     echo "No git repository or submodules detected, falling back to direct download"
     mkdir -p "$THIRD_PARTY_DIR"
     if [ ! -d "$IMGUI_DIR" ]; then
-        echo "Downloading ImGui v1.90.1..."
+        echo "Downloading ImGui v1.90.1-docking..."
         cd "$THIRD_PARTY_DIR"  
-        git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git
+        git clone --depth 1 --branch v1.90.1-docking https://github.com/ocornut/imgui.git
         echo "ImGui downloaded successfully"
     else
         echo "ImGui already exists in $IMGUI_DIR"

@@ -26,6 +26,7 @@
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
+#include <imgui_internal.h>
 
 #include "emulator8086.h"
 #include "version.h"
@@ -565,10 +566,56 @@ void GUIApplication::render() {
 }
 
 void GUIApplication::renderImGui() {
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->Pos);
+    ImGui::SetNextWindowSize(viewport->Size);
+    ImGui::SetNextWindowViewport(viewport->ID);
+
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+    windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+    windowFlags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+    windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+    ImGui::Begin("DockSpace", nullptr, windowFlags);
+    ImGui::PopStyleVar(3);
+
     renderMainMenuBar();
-    renderDemoWindow();
+
+    ImGuiID dockspaceId = ImGui::GetID("MainDockSpace");
+    ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+
+    static bool firstTime = true;
+    if (firstTime) {
+        firstTime = false;
+        ImGui::DockBuilderRemoveNode(dockspaceId);
+        ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_None);
+        ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->Size);
+
+        ImGuiID rightId =
+            ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Right, 0.25f, nullptr, &dockspaceId);
+        ImGuiID bottomId =
+            ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Down, 0.4f, nullptr, &dockspaceId);
+        ImGuiID leftTopId =
+            ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, 0.6f, nullptr, &dockspaceId);
+
+        ImGui::DockBuilderDockWindow("Registers", rightId);
+        ImGui::DockBuilderDockWindow("Memory Viewer", bottomId);
+        ImGui::DockBuilderDockWindow("Assembly Editor", leftTopId);
+        ImGui::DockBuilderDockWindow("Stack Viewer", dockspaceId);
+
+        ImGui::DockBuilderFinish(dockspaceId);
+    }
+
+    ImGui::End();
+
     renderAssemblyEditor();
-    renderEmulatorStatus();
     renderRegistersWindow();
     renderMemoryWindow();
     renderStackWindow();
@@ -576,7 +623,7 @@ void GUIApplication::renderImGui() {
 }
 
 void GUIApplication::renderMainMenuBar() {
-    if (ImGui::BeginMainMenuBar()) {
+    if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("New", "Ctrl+N")) {
             }
@@ -629,23 +676,13 @@ void GUIApplication::renderMainMenuBar() {
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("Registers", "F2", &showRegistersWindow);
-            ImGui::MenuItem("Memory", "F3", &showMemoryWindow);
-            ImGui::MenuItem("Assembly", "F4", &showAssemblyEditor);
-            ImGui::MenuItem("Stack", "F5", &showStackWindow);
-            ImGui::Separator();
-            ImGui::MenuItem("Demo Window", nullptr, &showDemoWindow);
-            ImGui::EndMenu();
-        }
-
         if (ImGui::BeginMenu("Help")) {
             if (ImGui::MenuItem("About")) {
             }
             ImGui::EndMenu();
         }
 
-        ImGui::EndMainMenuBar();
+        ImGui::EndMenuBar();
     }
 }
 
@@ -687,10 +724,7 @@ void GUIApplication::renderDemoWindow() {
 }
 
 void GUIApplication::renderAssemblyEditor() {
-    if (!showAssemblyEditor)
-        return;
-
-    if (ImGui::Begin("Assembly Editor", &showAssemblyEditor)) {
+    if (ImGui::Begin("Assembly Editor")) {
         if (ImGui::Button("New")) {
             assemblyLines.clear();
             assemblyLines.push_back("; New 8086 Assembly Program");
@@ -860,10 +894,10 @@ void GUIApplication::renderEmulatorStatus() {
 }
 
 void GUIApplication::renderRegistersWindow() {
-    if (!showRegistersWindow || !emulator)
+    if (!emulator)
         return;
 
-    if (ImGui::Begin("Registers", &showRegistersWindow)) {
+    if (ImGui::Begin("Registers")) {
         const auto& regs = emulator->getRegisters();
 
         ImGui::Text("8086 CPU Registers");
@@ -979,7 +1013,8 @@ void GUIApplication::renderRegistersWindow() {
 
         if (ImGui::CollapsingHeader("Flags Register", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Text("FLAGS: %04X", regs.FLAGS);
-            ImGui::SameLine();
+            // ImGui::SameLine();
+            ImGui::Separator();
             ImGui::Text("Binary: ");
             for (int i = 15; i >= 0; i--) {
                 ImGui::SameLine();
@@ -1071,10 +1106,10 @@ void GUIApplication::renderRegistersWindow() {
 }
 
 void GUIApplication::renderMemoryWindow() {
-    if (!showMemoryWindow || !emulator)
+    if (!emulator)
         return;
 
-    if (ImGui::Begin("Memory Viewer", &showMemoryWindow)) {
+    if (ImGui::Begin("Memory Viewer")) {
         const auto& memory = emulator->getMemory();
 
         ImGui::Text("Memory Size: %zu bytes", memory.size());
@@ -1088,12 +1123,26 @@ void GUIApplication::renderMemoryWindow() {
                 std::max(0, std::min(displayAddr, (int)memory.size() - memoryViewSize));
         }
 
-        ImGui::SameLine();
+        // ImGui::SameLine();
+        ImGui::Separator();
         ImGui::Text("Size:");
         ImGui::SameLine();
         ImGui::SliderInt("##ViewSize", &memoryViewSize, 64, 1024);
 
         ImGui::Separator();
+
+        if (ImGui::Button("Page Up")) {
+            memoryViewStart = std::max(0, memoryViewStart - memoryViewSize);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Page Down")) {
+            memoryViewStart =
+                std::min((int)memory.size() - memoryViewSize, memoryViewStart + memoryViewSize);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Go to 0x0000")) {
+            memoryViewStart = 0;
+        }
 
         ImGui::BeginChild(
             "MemoryDisplay", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
@@ -1129,7 +1178,7 @@ void GUIApplication::renderMemoryWindow() {
                 }
 
                 ImGui::SameLine();
-                ImGui::Text(" |");
+                // ImGui::Text(" |");
                 ImGui::SameLine();
 
                 for (int col = 0; col < 16; col++) {
@@ -1144,24 +1193,11 @@ void GUIApplication::renderMemoryWindow() {
                     if (col < 15)
                         ImGui::SameLine();
                 }
-                ImGui::Text("|");
+                // ImGui::Text("|");
             }
         }
 
         ImGui::EndChild();
-
-        if (ImGui::Button("Page Up")) {
-            memoryViewStart = std::max(0, memoryViewStart - memoryViewSize);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Page Down")) {
-            memoryViewStart =
-                std::min((int)memory.size() - memoryViewSize, memoryViewStart + memoryViewSize);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Go to 0x0000")) {
-            memoryViewStart = 0;
-        }
 
         ImGui::End();
     }
@@ -1271,11 +1307,11 @@ void GUIApplication::cleanupSDL() {
 }
 
 void GUIApplication::renderStackWindow() {
-    if (!showStackWindow || !emulator) {
+    if (!emulator) {
         return;
     }
 
-    if (ImGui::Begin("Stack Viewer", &showStackWindow)) {
+    if (ImGui::Begin("Stack Viewer")) {
         const auto& registers = emulator->getRegisters();
         uint16_t sp = registers.SP;
         uint16_t ss = registers.SS;
@@ -1351,7 +1387,9 @@ void GUIApplication::renderStackWindow() {
         }
 
         ImGui::Separator();
-        ImGui::Text("Note: SP (Stack Pointer) is highlighted in yellow");
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+        ImGui::Text("Note: SP (Stack Pointer)");
+        ImGui::PopStyleColor();
     }
     ImGui::End();
 }
