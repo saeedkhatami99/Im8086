@@ -408,7 +408,6 @@ if(BUILD_GUI)
         ${OPENGL_LIBRARIES}
     )
     
-    # Add SDL2 library directories
     if(SDL2_LIBRARY_DIRS)
         target_link_directories(${TARGET_NAME} PRIVATE ${SDL2_LIBRARY_DIRS})
         message(STATUS "Added SDL2 library directories: ${SDL2_LIBRARY_DIRS}")
@@ -431,7 +430,6 @@ if(BUILD_GUI)
         message(STATUS "  SDL2_IMAGE_LIBRARY_DIRS: ${SDL2_IMAGE_LIBRARY_DIRS}")
         message(STATUS "  SDL2_IMAGE_LDFLAGS: ${SDL2_IMAGE_LDFLAGS}")
         
-        # Add library directories first
         if(SDL2_IMAGE_LIBRARY_DIRS)
             target_link_directories(${TARGET_NAME} PRIVATE ${SDL2_IMAGE_LIBRARY_DIRS})
             message(STATUS "  Added library directories: ${SDL2_IMAGE_LIBRARY_DIRS}")
@@ -563,7 +561,6 @@ if(BUILD_TESTS)
         endif()
         
         if(SDL2_IMAGE_FOUND)
-            # Add library directories for test_gui
             if(SDL2_IMAGE_LIBRARY_DIRS)
                 target_link_directories(test_gui PRIVATE ${SDL2_IMAGE_LIBRARY_DIRS})
             endif()
