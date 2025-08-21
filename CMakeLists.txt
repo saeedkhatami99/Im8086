@@ -54,7 +54,6 @@ if(NOT SDL2_IMAGE_FOUND)
     find_package(SDL2_image QUIET)
 endif()
 
-# Enhanced SDL2_image detection for macOS and other systems
 if(NOT SDL2_IMAGE_FOUND)
     find_path(SDL2_IMAGE_INCLUDE_DIRS SDL_image.h
         HINTS
@@ -64,8 +63,8 @@ if(NOT SDL2_IMAGE_FOUND)
         ${CMAKE_PREFIX_PATH}
         /usr/local
         /usr
-        /opt/homebrew  # macOS Homebrew on Apple Silicon
-        /usr/local/Cellar/sdl2_image  # macOS Homebrew Intel
+        /opt/homebrew
+        /usr/local/Cellar/sdl2_image
     )
 
     find_library(SDL2_IMAGE_LIBRARIES
@@ -77,8 +76,8 @@ if(NOT SDL2_IMAGE_FOUND)
         ${CMAKE_PREFIX_PATH}
         /usr/local
         /usr
-        /opt/homebrew/lib  # macOS Homebrew on Apple Silicon
-        /usr/local/lib     # macOS Homebrew Intel
+        /opt/homebrew/lib
+        /usr/local/lib
     )
     
     if(SDL2_IMAGE_INCLUDE_DIRS AND SDL2_IMAGE_LIBRARIES)
