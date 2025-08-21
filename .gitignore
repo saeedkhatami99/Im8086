@@ -1,4 +1,5 @@
 .vscode
+scripts
 build
 build-static
 build-portable

@@ -1,4 +1,10 @@
-# Im8086
+<a>
+  <h1 align="center">
+    <picture>
+      <img style="margin: 0; padding: 0" src="./docs/Logo.svg">
+    </picture>
+  </h1>
+</a>
 
 A simple Intel 8086 microprocessor emulator for educational purposes, with both GUI and TUI interfaces.
 
@@ -19,7 +25,7 @@ A simple Intel 8086 microprocessor emulator for educational purposes, with both 
 ### Linux/Ubuntu
 
 ```bash
-sudo apt-get install build-essential cmake libsdl2-dev libgl1-mesa-dev libncurses5-dev
+sudo apt-get install build-essential cmake libsdl2-dev libsdl2-image-dev libgl1-mesa-dev libncurses5-dev
 ```
 
 ### macOS
