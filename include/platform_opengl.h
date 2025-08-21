@@ -25,7 +25,6 @@
     #endif
 
     #include <windows.h>
-    #include <commdlg.h>
 
     #ifdef APIENTRY
     #undef APIENTRY
