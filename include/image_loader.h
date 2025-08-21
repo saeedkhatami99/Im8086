@@ -1,7 +1,11 @@
 #ifndef IMAGE_LOADER_H
 #define IMAGE_LOADER_H
 
-#include <GL/gl.h>
+#ifdef __APPLE__
+    #include <OpenGL/gl.h>
+#else
+    #include <GL/gl.h>
+#endif
 #include <SDL.h>
 #include <vector>
 #include <string>
