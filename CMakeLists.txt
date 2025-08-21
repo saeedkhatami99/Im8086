@@ -35,7 +35,7 @@ else()
 endif()
 
 include_directories(include)
-find_package(PkgConfig REQUIRED)
+find_package(PkgConfig)
 find_package(SDL2 REQUIRED)
 
 if(NOT SDL2_FOUND)
