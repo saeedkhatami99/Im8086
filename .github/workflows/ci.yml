@@ -10,10 +10,6 @@ jobs:
   linux-build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        build_type: [Debug, Release]
-
     steps:
       - uses: actions/checkout@v3
         with:
@@ -119,10 +115,6 @@ jobs:
   windows-build:
     runs-on: windows-latest
 
-    strategy:
-      matrix:
-        build_type: [Debug, Release]
-
     steps:
       - uses: actions/checkout@v3
         with:
@@ -226,10 +218,6 @@ jobs:
 
   macos-build:
     runs-on: macos-latest
-    
-    strategy:
-      matrix:
-        build_type: [Debug, Release]
 
     steps:
       - uses: actions/checkout@v3
