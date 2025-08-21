@@ -54,6 +54,39 @@ if(NOT SDL2_IMAGE_FOUND)
     find_package(SDL2_image QUIET)
 endif()
 
+# Enhanced SDL2_image detection for macOS and other systems
+if(NOT SDL2_IMAGE_FOUND)
+    find_path(SDL2_IMAGE_INCLUDE_DIRS SDL_image.h
+        HINTS
+        ENV SDL2_IMAGE_DIR
+        PATH_SUFFIXES include SDL2 include/SDL2
+        PATHS
+        ${CMAKE_PREFIX_PATH}
+        /usr/local
+        /usr
+        /opt/homebrew  # macOS Homebrew on Apple Silicon
+        /usr/local/Cellar/sdl2_image  # macOS Homebrew Intel
+    )
+
+    find_library(SDL2_IMAGE_LIBRARIES
+        NAMES SDL2_image SDL2_image-2.0
+        HINTS
+        ENV SDL2_IMAGE_DIR
+        PATH_SUFFIXES lib lib64 lib/x64 lib/x86
+        PATHS
+        ${CMAKE_PREFIX_PATH}
+        /usr/local
+        /usr
+        /opt/homebrew/lib  # macOS Homebrew on Apple Silicon
+        /usr/local/lib     # macOS Homebrew Intel
+    )
+    
+    if(SDL2_IMAGE_INCLUDE_DIRS AND SDL2_IMAGE_LIBRARIES)
+        set(SDL2_IMAGE_FOUND TRUE)
+        message(STATUS "Found SDL2_image manually: ${SDL2_IMAGE_LIBRARIES}")
+    endif()
+endif()
+
 if(NOT SDL2_FOUND AND WIN32)
     
     find_path(SDL2_INCLUDE_DIRS SDL.h
@@ -264,6 +297,7 @@ if(BUILD_GUI)
     
     target_include_directories(${TARGET_NAME} PRIVATE 
         ${SDL2_INCLUDE_DIRS}
+        ${SDL2_IMAGE_INCLUDE_DIRS}
         ${IMGUI_DIR}
         ${IMGUI_DIR}/backends
     )
@@ -347,6 +381,7 @@ if(BUILD_TESTS)
             include 
             tests
             ${SDL2_INCLUDE_DIRS}
+            ${SDL2_IMAGE_INCLUDE_DIRS}
             ${IMGUI_DIR}
             ${IMGUI_DIR}/backends
         )
@@ -450,6 +485,14 @@ message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 if(BUILD_GUI)
     message(STATUS "SDL2 found: ${SDL2_FOUND}")
+    message(STATUS "SDL2_image found: ${SDL2_IMAGE_FOUND}")
+    if(SDL2_IMAGE_FOUND)
+        if(TARGET SDL2_image::SDL2_image)
+            message(STATUS "SDL2_image target: SDL2_image::SDL2_image")
+        elseif(SDL2_IMAGE_LIBRARIES)
+            message(STATUS "SDL2_image libraries: ${SDL2_IMAGE_LIBRARIES}")
+        endif()
+    endif()
     message(STATUS "OpenGL found: ${OPENGL_FOUND}")
 endif()
 
