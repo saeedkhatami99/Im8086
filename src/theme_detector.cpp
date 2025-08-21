@@ -56,7 +56,6 @@ Theme detectWindowsTheme() {
     
     return Theme::LIGHT;
 }
-}
 
 #elif defined(__APPLE__)
 Theme detectMacOSTheme() {
