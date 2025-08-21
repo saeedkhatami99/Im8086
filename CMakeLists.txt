@@ -54,6 +54,33 @@ if(NOT SDL2_IMAGE_FOUND)
     find_package(SDL2_image QUIET)
 endif()
 
+if(NOT SDL2_IMAGE_FOUND AND APPLE)
+    execute_process(
+        COMMAND brew --prefix sdl2_image
+        OUTPUT_VARIABLE SDL2_IMAGE_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    
+    if(SDL2_IMAGE_PREFIX)
+        find_path(SDL2_IMAGE_INCLUDE_DIRS SDL_image.h
+            PATHS ${SDL2_IMAGE_PREFIX}/include
+            NO_DEFAULT_PATH
+        )
+        
+        find_library(SDL2_IMAGE_LIBRARIES
+            NAMES SDL2_image
+            PATHS ${SDL2_IMAGE_PREFIX}/lib
+            NO_DEFAULT_PATH
+        )
+        
+        if(SDL2_IMAGE_INCLUDE_DIRS AND SDL2_IMAGE_LIBRARIES)
+            set(SDL2_IMAGE_FOUND TRUE)
+            message(STATUS "Found SDL2_image via Homebrew: ${SDL2_IMAGE_LIBRARIES}")
+        endif()
+    endif()
+endif()
+
 if(NOT SDL2_IMAGE_FOUND)
     find_path(SDL2_IMAGE_INCLUDE_DIRS SDL_image.h
         HINTS
@@ -83,6 +110,19 @@ if(NOT SDL2_IMAGE_FOUND)
     if(SDL2_IMAGE_INCLUDE_DIRS AND SDL2_IMAGE_LIBRARIES)
         set(SDL2_IMAGE_FOUND TRUE)
         message(STATUS "Found SDL2_image manually: ${SDL2_IMAGE_LIBRARIES}")
+        if(APPLE)
+            message(STATUS "SDL2_image raw libraries: ${SDL2_IMAGE_LIBRARIES}")
+            foreach(lib ${SDL2_IMAGE_LIBRARIES})
+                if(lib MATCHES "SDL2_image")
+                    set(SDL2_IMAGE_MAIN_LIB ${lib})
+                    break()
+                endif()
+            endforeach()
+            if(SDL2_IMAGE_MAIN_LIB)
+                set(SDL2_IMAGE_LIBRARIES ${SDL2_IMAGE_MAIN_LIB})
+                message(STATUS "Using SDL2_image library: ${SDL2_IMAGE_LIBRARIES}")
+            endif()
+        endif()
     endif()
 endif()
 
