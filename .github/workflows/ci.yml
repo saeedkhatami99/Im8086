@@ -26,6 +26,7 @@ jobs:
             build-essential \
             cmake \
             libsdl2-dev \
+            libsdl2-image-dev \
             libgl1-mesa-dev \
             libncurses5-dev \
             clang-format \
@@ -71,6 +72,7 @@ jobs:
             build-essential \
             cmake \
             libsdl2-dev \
+            libsdl2-image-dev \
             libgl1-mesa-dev \
             libncurses5-dev
 
@@ -79,14 +81,14 @@ jobs:
         run: |
           git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
           C:\vcpkg\bootstrap-vcpkg.bat
-          C:\vcpkg\vcpkg install sdl2:x64-windows
+          C:\vcpkg\vcpkg install sdl2:x64-windows sdl2-image:x64-windows
           echo "CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         shell: powershell
 
       - name: Install dependencies (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          brew install sdl2 ncurses
+          brew install sdl2 sdl2_image ncurses
 
       - name: Create build directory
         run: mkdir build
