@@ -11,9 +11,6 @@
     #ifndef VC_EXTRALEAN
     #define VC_EXTRALEAN
     #endif
-    #ifndef NOGDI
-    #define NOGDI
-    #endif
     #ifndef NOSERVICE
     #define NOSERVICE
     #endif
