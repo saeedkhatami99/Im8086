@@ -5,7 +5,11 @@
 #include <string>
 #include <vector>
 
-#include <SDL2/SDL.h>
+#ifdef __APPLE__
+    #include <SDL.h>
+#else
+    #include <SDL2/SDL.h>
+#endif
 #include "image_loader.h"
 
 struct ImGuiContext;

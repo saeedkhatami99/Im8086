@@ -22,8 +22,13 @@
 #include <unistd.h>
 #endif
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
+#ifdef __APPLE__
+    #include <SDL.h>
+    #include <SDL_opengl.h>
+#else
+    #include <SDL2/SDL.h>
+    #include <SDL2/SDL_opengl.h>
+#endif
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>

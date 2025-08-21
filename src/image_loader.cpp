@@ -1,8 +1,17 @@
 #include "image_loader.h"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
+#ifdef __APPLE__
+    #include <SDL.h>
+    #include <SDL_opengl.h>
+#else
+    #include <SDL2/SDL.h>
+    #include <SDL2/SDL_opengl.h>
+#endif
 #ifdef SDL2_IMAGE_FOUND
-#include <SDL2/SDL_image.h>
+#ifdef __APPLE__
+    #include <SDL_image.h>
+#else
+    #include <SDL2/SDL_image.h>
+#endif
 #endif
 #include <iostream>
 #include <fstream>
