@@ -7,8 +7,6 @@
 #ifdef _WIN32
     #define WIN32_LEAN_AND_MEAN
     #include <windows.h>
-    #include <dwmapi.h>
-    #pragma comment(lib, "dwmapi.lib")
 #elif defined(__APPLE__)
     #include <cstdio>
 #else
@@ -52,27 +50,12 @@ Theme detectWindowsTheme() {
             }
         }
         
-        BOOL isCompositionEnabled = FALSE;
-        if (SUCCEEDED(DwmIsCompositionEnabled(&isCompositionEnabled)) && isCompositionEnabled) {
-            DWORD colorization = 0;
-            BOOL opaque = FALSE;
-            
-            if (SUCCEEDED(DwmGetColorizationColor(&colorization, &opaque))) {
-                BYTE r = (colorization >> 16) & 0xFF;
-                BYTE g = (colorization >> 8) & 0xFF;
-                BYTE b = colorization & 0xFF;
-                
-                double luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0;
-                
-                return luminance < 0.5 ? Theme::DARK : Theme::LIGHT;
-            }
-        }
-        
     } catch (...) {
         std::cerr << "Error detecting Windows theme" << std::endl;
     }
     
-    return Theme::UNKNOWN;
+    return Theme::LIGHT;
+}
 }
 
 #elif defined(__APPLE__)
