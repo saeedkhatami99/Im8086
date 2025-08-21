@@ -124,130 +124,164 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           cd build
-          mkdir -p release-artifacts
-          cp Im8086 test_emulator release-artifacts/ 2>/dev/null || true
-          if [ -f "test_gui" ]; then cp test_gui release-artifacts/; fi
-          cp ../samples/sample_*.txt release-artifacts/ 2>/dev/null || true
-          cp ../samples/tui/sample_*.asm release-artifacts/ 2>/dev/null || true
-          cp ../README.md release-artifacts/ 2>/dev/null || true
 
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ -f "Im8086" ]; then
-            mkdir -p release-artifacts/lib
+
+          mkdir -p Im8086
+          mkdir -p Im8086/samples/txt
+          mkdir -p Im8086/samples/asm
+          mkdir -p Im8086/resources
+          mkdir -p Im8086/lib
+
+
+          cp Im8086 Im8086/ 2>/dev/null || true
+          cp test_emulator Im8086/ 2>/dev/null || true
+          if [ -f "test_gui" ]; then cp test_gui Im8086/; fi
+
+
+          cp ../samples/sample_*.txt Im8086/samples/txt/ 2>/dev/null || true
+          cp ../samples/tui/sample_*.asm Im8086/samples/asm/ 2>/dev/null || true
+
+
+          if [ -d "../resources" ]; then
+            cp ../resources/*.png Im8086/resources/ 2>/dev/null || true
+          fi
+
+
+          cp ../README.md Im8086/ 2>/dev/null || true
+
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ -f "Im8086/Im8086" ]; then
             echo "Detecting and bundling shared libraries..."
 
-            LIBS=$(ldd Im8086 | grep -E "(SDL2|ncurses|tinfo|GL)" | awk '{print $3}' | grep -v "not found" | sort -u)
+            LIBS=$(ldd Im8086/Im8086 | grep -E "(SDL2|ncurses|tinfo|GL)" | awk '{print $3}' | grep -v "not found" | sort -u)
             
             for lib in $LIBS; do
               if [ -f "$lib" ]; then
                 echo "Bundling library: $lib"
-                cp "$lib" release-artifacts/lib/
+                cp "$lib" Im8086/lib/
                 
                 lib_name=$(basename "$lib")
                 lib_base=$(echo "$lib_name" | sed 's/\.so\..*/\.so/')
                 if [ "$lib_base" != "$lib_name" ]; then
                   lib_dir=$(dirname "$lib")
-                  find "$lib_dir" -name "$lib_base*" -type f -exec cp {} release-artifacts/lib/ \; 2>/dev/null || true
+                  find "$lib_dir" -name "$lib_base*" -type f -exec cp {} Im8086/lib/ \; 2>/dev/null || true
                 fi
               fi
             done
             
-            if [ -d "release-artifacts/lib" ] && [ "$(ls -A release-artifacts/lib 2>/dev/null)" ]; then
-              cat > release-artifacts/launch.sh << 'LAUNCHER_EOF'
-          #!/bin/bash
-          DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-          export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
-          exec "$DIR/Im8086" "$@"
-          LAUNCHER_EOF
-              chmod +x release-artifacts/launch.sh
+            if [ "$(ls -A Im8086/lib 2>/dev/null)" ]; then
+              echo '#!/bin/bash' > Im8086/launch.sh
+              echo 'DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"' >> Im8086/launch.sh
+              echo 'export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"' >> Im8086/launch.sh
+              echo 'exec "$DIR/Im8086" "$@"' >> Im8086/launch.sh
+              chmod +x Im8086/launch.sh
               echo "Created portable launcher with bundled libraries"
               echo "Bundled libraries:"
-              ls -la release-artifacts/lib/
+              ls -la Im8086/lib/
             fi
           fi
 
-          if [ "${{ matrix.os }}" = "macos-latest" ] && [ -f "Im8086" ]; then
-            mkdir -p release-artifacts/lib
+          if [ "${{ matrix.os }}" = "macos-latest" ] && [ -f "Im8086/Im8086" ]; then
             echo "Detecting and bundling shared libraries for macOS..."
 
-            LIBS=$(otool -L Im8086 | grep -E "(SDL2|ncurses|tinfo)" | awk '{print $1}' | grep -v "Im8086" | grep -v "/usr/lib" | grep -v "/System/Library")
+            LIBS=$(otool -L Im8086/Im8086 | grep -E "(SDL2|ncurses|tinfo)" | awk '{print $1}' | grep -v "Im8086" | grep -v "/usr/lib" | grep -v "/System/Library")
             
             for lib in $LIBS; do
               if [ -f "$lib" ]; then
                 echo "Bundling library: $lib"
-                cp "$lib" release-artifacts/lib/
+                cp "$lib" Im8086/lib/
               fi
             done
             
-            if [ -d "release-artifacts/lib" ] && [ "$(ls -A release-artifacts/lib 2>/dev/null)" ]; then
-              cat > release-artifacts/launch.sh << 'LAUNCHER_EOF'
-          #!/bin/bash
-          DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-          export DYLD_LIBRARY_PATH="$DIR/lib:$DYLD_LIBRARY_PATH"
-          exec "$DIR/Im8086" "$@"
-          LAUNCHER_EOF
-              chmod +x release-artifacts/launch.sh
+            if [ "$(ls -A Im8086/lib 2>/dev/null)" ]; then
+              echo '#!/bin/bash' > Im8086/launch.sh
+              echo 'DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"' >> Im8086/launch.sh
+              echo 'export DYLD_LIBRARY_PATH="$DIR/lib:$DYLD_LIBRARY_PATH"' >> Im8086/launch.sh
+              echo 'exec "$DIR/Im8086" "$@"' >> Im8086/launch.sh
+              chmod +x Im8086/launch.sh
               echo "Created portable launcher with bundled libraries for macOS"
               echo "Bundled libraries:"
-              ls -la release-artifacts/lib/
+              ls -la Im8086/lib/
             fi
           fi
 
-          cd release-artifacts
-          tar -czf ../Im8086-${{ matrix.os }}.tar.gz *
+
+          tar -czf Im8086-${{ matrix.os }}.tar.gz Im8086/
 
       - name: Create portable package (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           cd build
-          mkdir release-artifacts
-          copy Release\Im8086.exe release-artifacts\ 2>nul
-          copy Release\test_emulator.exe release-artifacts\ 2>nul
-          copy Release\test_gui.exe release-artifacts\ 2>nul
-          copy ..\samples\sample_*.txt release-artifacts\ 2>nul
-          copy ..\samples\tui\sample_*.asm release-artifacts\ 2>nul
-          copy ..\README.md release-artifacts\ 2>nul
+
+
+          mkdir Im8086
+          mkdir Im8086\samples
+          mkdir Im8086\samples\txt
+          mkdir Im8086\samples\asm
+          mkdir Im8086\resources
+          mkdir Im8086\lib
+
+
+          copy Release\Im8086.exe Im8086\ 2>nul
+          copy Release\test_emulator.exe Im8086\ 2>nul
+          copy Release\test_gui.exe Im8086\ 2>nul
+
+
+          copy ..\samples\sample_*.txt Im8086\samples\txt\ 2>nul
+          copy ..\samples\tui\sample_*.asm Im8086\samples\asm\ 2>nul
+
+
+          if exist "..\resources\*.png" (
+            copy ..\resources\*.png Im8086\resources\ 2>nul
+          )
+
+
+          copy ..\README.md Im8086\ 2>nul
+
           echo Detecting and bundling DLL files...
 
           if exist "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" (
-            copy "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" release-artifacts\
-            echo SDL2.dll bundled
+            copy "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" Im8086\lib\
+            echo SDL2.dll bundled to lib directory
           )
           if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_ttf.dll" (
-            copy "C:\vcpkg\installed\x64-windows\bin\SDL2_ttf.dll" release-artifacts\
-            echo SDL2_ttf.dll bundled
+            copy "C:\vcpkg\installed\x64-windows\bin\SDL2_ttf.dll" Im8086\lib\
+            echo SDL2_ttf.dll bundled to lib directory
           )
           if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_image.dll" (
-            copy "C:\vcpkg\installed\x64-windows\bin\SDL2_image.dll" release-artifacts\
-            echo SDL2_image.dll bundled
+            copy "C:\vcpkg\installed\x64-windows\bin\SDL2_image.dll" Im8086\lib\
+            echo SDL2_image.dll bundled to lib directory
           )
           if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_mixer.dll" (
-            copy "C:\vcpkg\installed\x64-windows\bin\SDL2_mixer.dll" release-artifacts\
-            echo SDL2_mixer.dll bundled
+            copy "C:\vcpkg\installed\x64-windows\bin\SDL2_mixer.dll" Im8086\lib\
+            echo SDL2_mixer.dll bundled to lib directory
           )
 
           for %%f in ("C:\vcpkg\installed\x64-windows\bin\*.dll") do (
             if /I "%%~nxf" NEQ "SDL2.dll" (
-              copy "%%f" release-artifacts\ 2>nul && echo %%~nxf bundled
+              copy "%%f" Im8086\lib\ 2>nul && echo %%~nxf bundled to lib directory
             )
           )
 
           echo Creating portable launcher...
-          echo @echo off > release-artifacts\launch.bat
-          echo echo Starting Im8086 Emulator... >> release-artifacts\launch.bat
-          echo %%~dp0\Im8086.exe %%* >> release-artifacts\launch.bat
+          echo @echo off > Im8086\launch.bat
+          echo echo Starting Im8086 Emulator... >> Im8086\launch.bat
+          echo set "PATH=%%~dp0lib;%%PATH%%" >> Im8086\launch.bat
+          echo %%~dp0Im8086.exe %%* >> Im8086\launch.bat
 
           echo Bundled DLL files:
-          dir /b release-artifacts\*.dll 2>nul || echo No DLL files found
+          dir /b Im8086\lib\*.dll 2>nul || echo No DLL files found in lib directory
 
-          cd release-artifacts
-          tar -czf ..\Im8086-${{ matrix.os }}.tar.gz *
+
+          powershell Compress-Archive -Path Im8086 -DestinationPath Im8086-${{ matrix.os }}.zip
         shell: cmd
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Im8086-${{ matrix.os }}
-          path: build/Im8086-${{ matrix.os }}.tar.gz
+          path: |
+            build/Im8086-${{ matrix.os }}.tar.gz
+            build/Im8086-${{ matrix.os }}.zip
           retention-days: 3
 
   release:
@@ -264,13 +298,13 @@ jobs:
         id: get_version
         run: |
           VERSION=$(awk '/^project\(/,/\)/ {if(/VERSION/) {gsub(/.*VERSION /, ""); gsub(/ .*/, ""); print; exit}}' CMakeLists.txt)
-          
+
           if [ -z "$VERSION" ]; then
             TIMESTAMP=$(date '+%Y%m%d%H%M%S')
             VERSION="dev-$TIMESTAMP"
             echo "⚠️  Could not extract version from CMakeLists.txt, using timestamp-based version"
           fi
-          
+
           echo "Detected version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
@@ -281,7 +315,7 @@ jobs:
           git config --local user.name "GitHub Action"
           TAG="${{ steps.get_version.outputs.tag }}"
           echo "Creating tag: $TAG"
-          
+
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists, skipping creation"
           else
@@ -300,7 +334,9 @@ jobs:
         with:
           tag_name: ${{ steps.get_version.outputs.tag }}
           name: Release ${{ steps.get_version.outputs.tag }}
-          files: artifacts/*/Im8086-*.tar.gz
+          files: |
+            artifacts/*/Im8086-*.tar.gz
+            artifacts/*/Im8086-*.zip
           generate_release_notes: true
           draft: true
           prerelease: false
