@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(Im8086 
-    VERSION 1.1.1
+    VERSION 1.2.0
     DESCRIPTION "Intel 8086 Microprocessor Emulator with GUI and TUI"
     LANGUAGES CXX
 )
@@ -44,6 +44,14 @@ endif()
 
 if(NOT SDL2_FOUND AND PkgConfig_FOUND)
     pkg_check_modules(SDL2 QUIET sdl2)
+endif()
+
+if(PkgConfig_FOUND)
+    pkg_check_modules(SDL2_IMAGE QUIET SDL2_image)
+endif()
+
+if(NOT SDL2_IMAGE_FOUND)
+    find_package(SDL2_image QUIET)
 endif()
 
 if(NOT SDL2_FOUND AND WIN32)
@@ -203,6 +211,8 @@ if(BUILD_GUI)
     list(APPEND GUI_SOURCES
         src/gui/gui_application.cpp
         src/gui/main_gui.cpp
+        src/gui/splash_window.cpp
+        src/image_loader.cpp
     )
 endif()
 
@@ -241,6 +251,15 @@ if(BUILD_GUI)
         list(APPEND LINK_LIBRARIES SDL2::SDL2 SDL2::SDL2main)
     elseif(SDL2_LIBRARIES)
         list(APPEND LINK_LIBRARIES ${SDL2_LIBRARIES})
+    endif()
+    
+    if(SDL2_IMAGE_FOUND)
+        if(TARGET SDL2_image::SDL2_image)
+            list(APPEND LINK_LIBRARIES SDL2_image::SDL2_image)
+        elseif(SDL2_IMAGE_LIBRARIES)
+            list(APPEND LINK_LIBRARIES ${SDL2_IMAGE_LIBRARIES})
+        endif()
+        add_compile_definitions(SDL2_IMAGE_FOUND)
     endif()
     
     target_include_directories(${TARGET_NAME} PRIVATE 
@@ -284,8 +303,20 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
     )
 endif()
 
+add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/resources
+    ${CMAKE_BINARY_DIR}/resources
+    COMMENT "Copying resources folder to build directory"
+)
+
 install(TARGETS ${TARGET_NAME} 
     RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/resources
+    DESTINATION .
+    COMPONENT Runtime
 )
 
 add_custom_target(run
@@ -308,6 +339,8 @@ if(BUILD_TESTS)
         add_executable(test_gui
             tests/test_gui.cpp
             src/gui/gui_application.cpp
+            src/gui/splash_window.cpp
+            src/image_loader.cpp
             ${CORE_SOURCES}
         )
         target_include_directories(test_gui PRIVATE 
@@ -328,6 +361,16 @@ if(BUILD_TESTS)
         elseif(SDL2_LIBRARIES)
             target_link_libraries(test_gui ${SDL2_LIBRARIES})
         endif()
+        
+        if(SDL2_IMAGE_FOUND)
+            if(TARGET SDL2_image::SDL2_image)
+                target_link_libraries(test_gui SDL2_image::SDL2_image)
+            elseif(SDL2_IMAGE_LIBRARIES)
+                target_link_libraries(test_gui ${SDL2_IMAGE_LIBRARIES})
+            endif()
+            target_compile_definitions(test_gui PRIVATE SDL2_IMAGE_FOUND)
+        endif()
+        
         if(SDL2_CFLAGS_OTHER)
             target_compile_definitions(test_gui PRIVATE ${SDL2_CFLAGS_OTHER})
         endif()
@@ -338,6 +381,13 @@ if(BUILD_TESTS)
         else()
             target_link_libraries(test_gui GL)
         endif()
+        
+        add_custom_command(TARGET test_gui POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/resources
+            ${CMAKE_BINARY_DIR}/resources
+            COMMENT "Copying resources folder for test_gui"
+        )
     endif()
     
     add_custom_target(test

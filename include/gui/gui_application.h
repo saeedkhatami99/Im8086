@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <SDL2/SDL.h>
+#include "image_loader.h"
 
 struct ImGuiContext;
 struct ImGuiInputTextCallbackData;
@@ -40,13 +41,15 @@ class GUIApplication {
 
     bool running = false;
     bool initialized = false;
-
     bool showRegistersWindow = true;
     bool showMemoryWindow = true;
     bool showDemoWindow = true;
     bool showAssemblyEditor = true;
     bool showStackWindow = true;
     bool showFileDialog = false;
+    bool showSplashScreen = false;
+    bool splashScreenInitialized = false;
+    Image logoImage;
 
     int memoryViewStart = 0;
     int memoryViewSize = 256;
@@ -72,6 +75,7 @@ class GUIApplication {
     void renderImGui();
     void renderMainMenuBar();
     void renderDemoWindow();
+    void renderSplashScreen();
     void renderAssemblyEditor();
     void renderEmulatorStatus();
     void renderRegistersWindow();
