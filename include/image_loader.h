@@ -1,19 +1,8 @@
 #ifndef IMAGE_LOADER_H
 #define IMAGE_LOADER_H
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#define VC_EXTRALEAN
-#define NOGDI
-#include <windows.h> 
-#endif
+#include "platform_opengl.h"
 
-#ifdef __APPLE__
-    #include <OpenGL/gl.h>
-#else
-    #include <GL/gl.h>
-#endif
 #include <SDL2/SDL.h>
 #include <vector>
 #include <string>

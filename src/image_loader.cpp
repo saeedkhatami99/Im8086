@@ -1,10 +1,8 @@
 #include "image_loader.h"
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#define VC_EXTRALEAN
-#define NOGDI
+#include <io.h>
+#include <commdlg.h>
 #endif
 
 #ifdef __APPLE__

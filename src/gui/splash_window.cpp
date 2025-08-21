@@ -1,12 +1,28 @@
-#include "gui/splash_window.h"
-#include "image_loader.h"
-
 #ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
+#ifndef VC_EXTRALEAN
 #define VC_EXTRALEAN
+#endif
+#ifndef NOGDI
 #define NOGDI
 #endif
+#include <windows.h>
+
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+#ifdef WINGDIAPI
+#undef WINGDIAPI
+#endif
+#endif
+
+#include "gui/splash_window.h"
+#include "image_loader.h"
 
 #ifdef __APPLE__
     #include <SDL2/SDL_image.h>

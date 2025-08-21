@@ -27,6 +27,7 @@ endif()
 
 if (MSVC)
   add_compile_options(/W4 /permissive-)
+  add_compile_definitions(WIN32_LEAN_AND_MEAN NOMINMAX VC_EXTRALEAN NOGDI)
   if(BUILD_STATIC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   endif()

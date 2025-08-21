@@ -1,3 +1,31 @@
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN  
+#endif
+#ifndef NOGDI
+#define NOGDI
+#endif
+#include <windows.h>
+#include <commdlg.h>
+#include <io.h>
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+#ifdef WINGDIAPI
+#undef WINGDIAPI
+#endif
+#define popen _popen
+#define pclose _pclose
+#else
+#include <unistd.h>
+#endif
+
 #include "gui/gui_application.h"
 #include "image_loader.h"
 
@@ -21,20 +49,6 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_internal.h>
-
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#define VC_EXTRALEAN
-#define NOGDI
-#include <windows.h>
-#include <commdlg.h>
-#include <io.h>
-#define popen _popen
-#define pclose _pclose
-#else
-#include <unistd.h>
-#endif
 
 #include "emulator8086.h"
 #include "version.h"
