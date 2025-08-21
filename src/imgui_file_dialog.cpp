@@ -28,7 +28,7 @@ void ImGuiFileDialog::open() {
 
 void ImGuiFileDialog::setFileFilters(const std::vector<std::string>& filters) {
     fileFilters = filters;
-    refreshCurrentDirectory(); // Refresh to apply new filters
+    refreshCurrentDirectory();
 }
 
 bool ImGuiFileDialog::display(const char* title) {
@@ -36,18 +36,15 @@ bool ImGuiFileDialog::display(const char* title) {
 
     fileSelected = false;
     
-    // Center the modal
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
     ImGui::SetNextWindowSize(ImVec2(700, 500), ImGuiCond_FirstUseEver);
 
     if (ImGui::BeginPopupModal(title, &isDialogOpen, ImGuiWindowFlags_NoResize)) {
         
-        // Current path display and navigation
         ImGui::Text("Current Directory:");
         ImGui::SameLine();
         
-        // Path input field (editable)
         if (ImGui::InputText("##path", pathBuffer, sizeof(pathBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
             try {
                 std::filesystem::path newPath(pathBuffer);
@@ -55,7 +52,6 @@ bool ImGuiFileDialog::display(const char* title) {
                     navigateToDirectory(newPath);
                 }
             } catch (const std::exception&) {
-                // Invalid path, revert
                 std::string currentPathStr = currentPath.string();
                 strncpy(pathBuffer, currentPathStr.c_str(), sizeof(pathBuffer) - 1);
                 pathBuffer[sizeof(pathBuffer) - 1] = '\0';
@@ -76,10 +72,8 @@ bool ImGuiFileDialog::display(const char* title) {
 
         ImGui::Separator();
 
-        // File list
         if (ImGui::BeginChild("FileList", ImVec2(0, -60), true)) {
             
-            // Column headers
             ImGui::Columns(3, "FileColumns");
             ImGui::Text("Name");
             ImGui::NextColumn();
@@ -94,7 +88,6 @@ bool ImGuiFileDialog::display(const char* title) {
                 
                 bool isSelected = (static_cast<size_t>(selectedIndex) == i);
                 
-                // File/folder icon
                 const char* icon = entry.isDirectory ? "📁" : "📄";
                 std::string displayName = std::string(icon) + " " + entry.name;
                 
@@ -102,7 +95,6 @@ bool ImGuiFileDialog::display(const char* title) {
                     selectedIndex = i;
                     
                     if (entry.isDirectory) {
-                        // Double-click to enter directory
                         if (ImGui::IsMouseDoubleClicked(0)) {
                             navigateToDirectory(std::filesystem::path(entry.fullPath));
                         }
@@ -111,7 +103,6 @@ bool ImGuiFileDialog::display(const char* title) {
                     }
                 }
                 
-                // Double-click to open file
                 if (!entry.isDirectory && isSelected && ImGui::IsMouseDoubleClicked(0)) {
                     selectedFile = entry.fullPath;
                     fileSelected = true;
@@ -131,7 +122,6 @@ bool ImGuiFileDialog::display(const char* title) {
 
         ImGui::Separator();
 
-        // File filters
         ImGui::Text("File Filters: ");
         ImGui::SameLine();
         std::string filterText = "";
@@ -141,7 +131,6 @@ bool ImGuiFileDialog::display(const char* title) {
         }
         ImGui::Text("%s", filterText.c_str());
 
-        // Buttons
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
         
         bool hasFileSelected = (selectedIndex >= 0 && !directoryContents.empty() && 
@@ -201,7 +190,6 @@ void ImGuiFileDialog::refreshCurrentDirectory() {
             }
         }
         
-        // Sort: directories first, then files, alphabetically
         std::sort(directoryContents.begin(), directoryContents.end(), 
                   [](const FileEntry& a, const FileEntry& b) {
                       if (a.isDirectory != b.isDirectory) {
@@ -219,7 +207,6 @@ void ImGuiFileDialog::navigateToDirectory(const std::filesystem::path& path) {
     try {
         currentPath = std::filesystem::canonical(path);
         
-        // Update path buffer
         std::string currentPathStr = currentPath.string();
         strncpy(pathBuffer, currentPathStr.c_str(), sizeof(pathBuffer) - 1);
         pathBuffer[sizeof(pathBuffer) - 1] = '\0';

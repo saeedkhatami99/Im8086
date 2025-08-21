@@ -6,6 +6,7 @@
 
 #include "gui/splash_window.h"
 #include "image_loader.h"
+#include "theme_detector.h"
 
 #ifdef __APPLE__
     #include <SDL2/SDL_image.h>
@@ -37,11 +38,34 @@ bool SplashWindow::create(const std::string& logoPath, int height) {
         std::cerr << "SDL_image could not initialize! SDL_image Error: " << IMG_GetError() << std::endl;
     }
     
-    std::string fullPath = "./resources/" + logoPath;
-    logoSurface = IMG_Load(fullPath.c_str());
+    std::string themeLogo;
+    if (logoPath.empty()) {
+        themeLogo = ThemeDetector::getThemeAwareLogo("./resources");
+    } else {
+        if (logoPath.find('/') == std::string::npos && logoPath.find('\\') == std::string::npos) {
+            if (logoPath == "Logo.png") {
+                themeLogo = ThemeDetector::getThemeAwareLogo("./resources");
+            } else {
+                themeLogo = "./resources/" + logoPath;
+            }
+        } else {
+            themeLogo = logoPath;
+        }
+    }
+    
+    logoSurface = IMG_Load(themeLogo.c_str());
     if (!logoSurface) {
-        std::cerr << "Failed to load splash logo: " << fullPath << " - " << IMG_GetError() << std::endl;
-        return false;
+        std::cerr << "Failed to load splash logo: " << themeLogo << " - " << IMG_GetError() << std::endl;
+        
+        if (themeLogo != "./resources/Logo.png") {
+            std::cerr << "Falling back to default logo..." << std::endl;
+            logoSurface = IMG_Load("./resources/Logo.png");
+        }
+        
+        if (!logoSurface) {
+            std::cerr << "Failed to load fallback logo as well!" << std::endl;
+            return false;
+        }
     }
     
     float aspectRatio = (float)logoSurface->w / (float)logoSurface->h;
@@ -80,11 +104,21 @@ bool SplashWindow::create(const std::string& logoPath, int height) {
 void SplashWindow::render(float alpha) {
     if (!window || !windowSurface || !logoSurface) return;
     
+    ThemeDetector::Theme currentTheme = ThemeDetector::detectSystemTheme();
+    
     Uint8 alphaValue = (Uint8)(alpha * 255);
     Uint8 bgAlpha = alphaValue;
-    Uint8 bgR = (Uint8)(45 * alpha);
-    Uint8 bgG = (Uint8)(45 * alpha);
-    Uint8 bgB = (Uint8)(48 * alpha);
+    
+    Uint8 bgR, bgG, bgB;
+    if (currentTheme == ThemeDetector::Theme::LIGHT) {
+        bgR = (Uint8)(255 * alpha);
+        bgG = (Uint8)(255 * alpha);
+        bgB = (Uint8)(255 * alpha);
+    } else {
+        bgR = (Uint8)(0 * alpha);
+        bgG = (Uint8)(0 * alpha);
+        bgB = (Uint8)(0 * alpha);
+    }
 
     SDL_FillRect(windowSurface, nullptr, SDL_MapRGB(windowSurface->format, bgR, bgG, bgB));
 
@@ -130,6 +164,8 @@ void SplashWindow::render(float alpha) {
         SDL_BlitSurface(scaledLogo, nullptr, windowSurface, &dstRect);
         SDL_FreeSurface(scaledLogo);
     }
+    
+    applyRoundedCorners(15);
     
     SDL_UpdateWindowSurface(window);
 }
@@ -248,6 +284,106 @@ void SplashWindow::hide() {
     if (window) {
         SDL_HideWindow(window);
         visible = false;
+    }
+}
+
+void SplashWindow::applyRoundedCorners(int cornerRadius) {
+    if (!windowSurface) return;
+    
+    ThemeDetector::Theme currentTheme = ThemeDetector::detectSystemTheme();
+    
+    Uint32 maskColor = SDL_MapRGBA(windowSurface->format, 0, 0, 0, 0);
+    
+    int w = windowSurface->w;
+    int h = windowSurface->h;
+    
+    for (int y = 0; y < cornerRadius; y++) {
+        for (int x = 0; x < cornerRadius; x++) {
+            int dx = cornerRadius - x;
+            int dy = cornerRadius - y;
+            if (dx * dx + dy * dy > cornerRadius * cornerRadius) {
+                if (y < h && x < w) {
+                    Uint32* pixel = (Uint32*)((Uint8*)windowSurface->pixels + y * windowSurface->pitch + x * windowSurface->format->BytesPerPixel);
+                    *pixel = maskColor;
+                }
+            }
+        }
+    }
+    
+    for (int y = 0; y < cornerRadius; y++) {
+        for (int x = w - cornerRadius; x < w; x++) {
+            int dx = x - (w - cornerRadius);
+            int dy = cornerRadius - y;
+            if (dx * dx + dy * dy > cornerRadius * cornerRadius) {
+                if (y < h && x >= 0) {
+                    Uint32* pixel = (Uint32*)((Uint8*)windowSurface->pixels + y * windowSurface->pitch + x * windowSurface->format->BytesPerPixel);
+                    *pixel = maskColor;
+                }
+            }
+        }
+    }
+    
+    for (int y = h - cornerRadius; y < h; y++) {
+        for (int x = 0; x < cornerRadius; x++) {
+            int dx = cornerRadius - x;
+            int dy = y - (h - cornerRadius);
+            if (dx * dx + dy * dy > cornerRadius * cornerRadius) {
+                if (y >= 0 && x < w) {
+                    Uint32* pixel = (Uint32*)((Uint8*)windowSurface->pixels + y * windowSurface->pitch + x * windowSurface->format->BytesPerPixel);
+                    *pixel = maskColor;
+                }
+            }
+        }
+    }
+    
+    for (int y = h - cornerRadius; y < h; y++) {
+        for (int x = w - cornerRadius; x < w; x++) {
+            int dx = x - (w - cornerRadius);
+            int dy = y - (h - cornerRadius);
+            if (dx * dx + dy * dy > cornerRadius * cornerRadius) {
+                if (y >= 0 && x >= 0) {
+                    Uint32* pixel = (Uint32*)((Uint8*)windowSurface->pixels + y * windowSurface->pitch + x * windowSurface->format->BytesPerPixel);
+                    *pixel = maskColor;
+                }
+            }
+        }
+    }
+}
+
+void SplashWindow::drawRoundedRect(SDL_Surface* surface, int x, int y, int w, int h, int radius, Uint32 color) {
+    if (!surface) return;
+    
+    SDL_Rect topRect = {x + radius, y, w - 2 * radius, radius};
+    SDL_Rect middleRect = {x, y + radius, w, h - 2 * radius};
+    SDL_Rect bottomRect = {x + radius, y + h - radius, w - 2 * radius, radius};
+    
+    SDL_FillRect(surface, &topRect, color);
+    SDL_FillRect(surface, &middleRect, color);
+    SDL_FillRect(surface, &bottomRect, color);
+    
+    for (int cy = 0; cy < radius; cy++) {
+        for (int cx = 0; cx < radius; cx++) {
+            int dx = radius - cx;
+            int dy = radius - cy;
+            if (dx * dx + dy * dy <= radius * radius) {
+                if (x + cx >= 0 && y + cy >= 0 && x + cx < surface->w && y + cy < surface->h) {
+                    Uint32* pixel = (Uint32*)((Uint8*)surface->pixels + (y + cy) * surface->pitch + (x + cx) * surface->format->BytesPerPixel);
+                    *pixel = color;
+                }
+                if (x + w - radius + dx - 1 >= 0 && y + cy >= 0 && x + w - radius + dx - 1 < surface->w && y + cy < surface->h) {
+                    Uint32* pixel = (Uint32*)((Uint8*)surface->pixels + (y + cy) * surface->pitch + (x + w - radius + dx - 1) * surface->format->BytesPerPixel);
+                    *pixel = color;
+                }
+                if (x + cx >= 0 && y + h - radius + dy - 1 >= 0 && x + cx < surface->w && y + h - radius + dy - 1 < surface->h) {
+                    Uint32* pixel = (Uint32*)((Uint8*)surface->pixels + (y + h - radius + dy - 1) * surface->pitch + (x + cx) * surface->format->BytesPerPixel);
+                    *pixel = color;
+                }
+                if (x + w - radius + dx - 1 >= 0 && y + h - radius + dy - 1 >= 0 && x + w - radius + dx - 1 < surface->w && y + h - radius + dy - 1 < surface->h) {
+                    Uint32* pixel = (Uint32*)((Uint8*)surface->pixels + (y + h - radius + dy - 1) * surface->pitch + (x + w - radius + dx - 1) * surface->format->BytesPerPixel);
+                    *pixel = color;
+                }
+            }
+        }
     }
 }
 

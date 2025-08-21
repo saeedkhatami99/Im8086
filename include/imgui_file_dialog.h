@@ -60,4 +60,4 @@ private:
     char pathBuffer[512];
 };
 
-#endif // IMGUI_FILE_DIALOG_H
+#endif

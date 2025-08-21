@@ -1541,7 +1541,7 @@ std::string GUIApplication::openFileDialog(const std::string& /* title */, const
     if (!fileDialog->isOpen()) {
         fileDialog->open();
     }
-    return ""; // Return empty string for now, the dialog will be handled in the render loop
+    return "";
 }
 
 bool GUIApplication::isFileDialogAvailable() {

@@ -43,4 +43,6 @@ private:
     void centerWindow();
     bool updateFade();
     float getCurrentAlpha();
+    void applyRoundedCorners(int cornerRadius = 15);
+    void drawRoundedRect(SDL_Surface* surface, int x, int y, int w, int h, int radius, Uint32 color);
 };

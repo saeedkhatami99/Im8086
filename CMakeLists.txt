@@ -397,6 +397,7 @@ if(BUILD_GUI)
         src/gui/splash_window.cpp
         src/image_loader.cpp
         src/imgui_file_dialog.cpp
+        src/theme_detector.cpp
     )
 endif()
 
@@ -504,8 +505,9 @@ if(LINK_LIBRARIES)
     target_link_libraries(${TARGET_NAME} ${LINK_LIBRARIES})
     if(BUILD_STATIC AND BUILD_GUI AND SDL2_FOUND)
         if(WIN32)
-            
-            target_link_libraries(${TARGET_NAME} winmm setupapi version imm32)
+            target_link_libraries(${TARGET_NAME} winmm setupapi version imm32 dwmapi)
+        elseif(APPLE)
+            target_link_libraries(${TARGET_NAME} "-framework CoreFoundation")
         elseif(UNIX AND SDL2_STATIC_DEPS)
             
             target_link_libraries(${TARGET_NAME} ${SDL2_STATIC_DEPS})
@@ -561,6 +563,7 @@ if(BUILD_TESTS)
             src/gui/splash_window.cpp
             src/image_loader.cpp
             src/imgui_file_dialog.cpp
+            src/theme_detector.cpp
             ${CORE_SOURCES}
         )
         target_include_directories(test_gui PRIVATE 
@@ -600,9 +603,9 @@ if(BUILD_TESTS)
             target_compile_definitions(test_gui PRIVATE ${SDL2_CFLAGS_OTHER})
         endif()
         if(WIN32)
-            target_link_libraries(test_gui opengl32)
+            target_link_libraries(test_gui opengl32 dwmapi)
         elseif(APPLE)
-            target_link_libraries(test_gui "-framework OpenGL")
+            target_link_libraries(test_gui "-framework OpenGL" "-framework CoreFoundation")
             target_compile_definitions(test_gui PRIVATE GL_SILENCE_DEPRECATION)
         else()
             target_link_libraries(test_gui GL)

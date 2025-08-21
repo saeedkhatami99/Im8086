@@ -23,8 +23,8 @@ int main_gui(int argc, char* argv[]) {
 
     SplashWindow splash;
     bool splashCreated = false;
-    std::cout << "Attempting to create splash window..." << std::endl;
-    if (splash.create("LogoWithBG.png", 300)) {
+    std::cout << "Attempting to create splash window with theme detection..." << std::endl;
+    if (splash.create("Logo.png", 300)) {
         std::cout << "Splash window created successfully, showing with fade..." << std::endl;
         
         splash.showWithFade(1.5f, 2.0f, 1.5f);
