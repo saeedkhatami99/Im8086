@@ -55,6 +55,48 @@ if(NOT SDL2_IMAGE_FOUND)
 endif()
 
 if(NOT SDL2_IMAGE_FOUND AND APPLE)
+    message(STATUS "Debugging SDL2_image detection on macOS...")
+    
+    execute_process(COMMAND ls -la /opt/homebrew/include/SDL2/SDL_image.h
+                   OUTPUT_VARIABLE HOMEBREW_ARM_HEADER
+                   ERROR_QUIET)
+    execute_process(COMMAND ls -la /usr/local/include/SDL2/SDL_image.h
+                   OUTPUT_VARIABLE HOMEBREW_INTEL_HEADER
+                   ERROR_QUIET)
+    execute_process(COMMAND ls -la /opt/homebrew/include/SDL_image.h
+                   OUTPUT_VARIABLE HOMEBREW_ARM_HEADER_DIRECT
+                   ERROR_QUIET)
+    execute_process(COMMAND ls -la /usr/local/include/SDL_image.h
+                   OUTPUT_VARIABLE HOMEBREW_INTEL_HEADER_DIRECT
+                   ERROR_QUIET)
+    
+    if(HOMEBREW_ARM_HEADER)
+        message(STATUS "Found: /opt/homebrew/include/SDL2/SDL_image.h")
+    endif()
+    if(HOMEBREW_INTEL_HEADER)
+        message(STATUS "Found: /usr/local/include/SDL2/SDL_image.h")
+    endif()
+    if(HOMEBREW_ARM_HEADER_DIRECT)
+        message(STATUS "Found: /opt/homebrew/include/SDL_image.h")
+    endif()
+    if(HOMEBREW_INTEL_HEADER_DIRECT)
+        message(STATUS "Found: /usr/local/include/SDL_image.h")
+    endif()
+    
+    execute_process(COMMAND ls -la /opt/homebrew/lib/libSDL2_image*
+                   OUTPUT_VARIABLE HOMEBREW_ARM_LIB
+                   ERROR_QUIET)
+    execute_process(COMMAND ls -la /usr/local/lib/libSDL2_image*
+                   OUTPUT_VARIABLE HOMEBREW_INTEL_LIB
+                   ERROR_QUIET)
+    
+    if(HOMEBREW_ARM_LIB)
+        message(STATUS "Found ARM Homebrew SDL2_image libs: ${HOMEBREW_ARM_LIB}")
+    endif()
+    if(HOMEBREW_INTEL_LIB)
+        message(STATUS "Found Intel Homebrew SDL2_image libs: ${HOMEBREW_INTEL_LIB}")
+    endif()
+    
     execute_process(
         COMMAND brew --prefix sdl2_image
         OUTPUT_VARIABLE SDL2_IMAGE_PREFIX
@@ -63,13 +105,36 @@ if(NOT SDL2_IMAGE_FOUND AND APPLE)
     )
     
     if(SDL2_IMAGE_PREFIX)
+        message(STATUS "Homebrew SDL2_image prefix: ${SDL2_IMAGE_PREFIX}")
+        execute_process(COMMAND ls -la ${SDL2_IMAGE_PREFIX}/include
+                       OUTPUT_VARIABLE PREFIX_INCLUDE_CONTENTS
+                       ERROR_QUIET)
+        execute_process(COMMAND ls -la ${SDL2_IMAGE_PREFIX}/lib
+                       OUTPUT_VARIABLE PREFIX_LIB_CONTENTS
+                       ERROR_QUIET)
+        if(PREFIX_INCLUDE_CONTENTS)
+            message(STATUS "Contents of ${SDL2_IMAGE_PREFIX}/include: ${PREFIX_INCLUDE_CONTENTS}")
+        endif()
+        if(PREFIX_LIB_CONTENTS)
+            message(STATUS "Contents of ${SDL2_IMAGE_PREFIX}/lib: ${PREFIX_LIB_CONTENTS}")
+        endif()
+        
         find_path(SDL2_IMAGE_INCLUDE_DIRS SDL_image.h
-            PATHS ${SDL2_IMAGE_PREFIX}/include
+            PATHS 
+                ${SDL2_IMAGE_PREFIX}/include
+                ${SDL2_IMAGE_PREFIX}/include/SDL2
             NO_DEFAULT_PATH
         )
         
+        if(NOT SDL2_IMAGE_INCLUDE_DIRS)
+            find_path(SDL2_IMAGE_INCLUDE_DIRS SDL_image.h
+                PATHS ${SDL2_IMAGE_PREFIX}/include/SDL2
+                NO_DEFAULT_PATH
+            )
+        endif()
+        
         find_library(SDL2_IMAGE_LIBRARIES
-            NAMES SDL2_image
+            NAMES SDL2_image libSDL2_image
             PATHS ${SDL2_IMAGE_PREFIX}/lib
             NO_DEFAULT_PATH
         )
@@ -77,6 +142,31 @@ if(NOT SDL2_IMAGE_FOUND AND APPLE)
         if(SDL2_IMAGE_INCLUDE_DIRS AND SDL2_IMAGE_LIBRARIES)
             set(SDL2_IMAGE_FOUND TRUE)
             message(STATUS "Found SDL2_image via Homebrew: ${SDL2_IMAGE_LIBRARIES}")
+        endif()
+    endif()
+    
+    if(NOT SDL2_IMAGE_FOUND)
+        find_library(SDL2_IMAGE_LIBRARIES
+            NAMES SDL2_image libSDL2_image
+            PATHS 
+                /usr/local/lib
+                /opt/homebrew/lib
+                /usr/lib
+        )
+        
+        find_path(SDL2_IMAGE_INCLUDE_DIRS SDL_image.h
+            PATHS 
+                /usr/local/include
+                /usr/local/include/SDL2
+                /opt/homebrew/include
+                /opt/homebrew/include/SDL2
+                /usr/include
+                /usr/include/SDL2
+        )
+        
+        if(SDL2_IMAGE_INCLUDE_DIRS AND SDL2_IMAGE_LIBRARIES)
+            set(SDL2_IMAGE_FOUND TRUE)
+            message(STATUS "Found SDL2_image in system paths: ${SDL2_IMAGE_LIBRARIES}")
         endif()
     endif()
 endif()
@@ -326,10 +416,32 @@ if(BUILD_GUI)
     endif()
     
     if(SDL2_IMAGE_FOUND)
+        message(STATUS "SDL2_image linking debug:")
+        if(TARGET SDL2_image::SDL2_image)
+            message(STATUS "  TARGET SDL2_image::SDL2_image exists: YES")
+        else()
+            message(STATUS "  TARGET SDL2_image::SDL2_image exists: NO")
+        endif()
+        message(STATUS "  SDL2_IMAGE_LIBRARIES: ${SDL2_IMAGE_LIBRARIES}")
+        
         if(TARGET SDL2_image::SDL2_image)
             list(APPEND LINK_LIBRARIES SDL2_image::SDL2_image)
+            message(STATUS "  Using target: SDL2_image::SDL2_image")
         elseif(SDL2_IMAGE_LIBRARIES)
-            list(APPEND LINK_LIBRARIES ${SDL2_IMAGE_LIBRARIES})
+            if(APPLE AND SDL2_IMAGE_LIBRARIES MATCHES ";")
+                message(STATUS "  Detected multiple libraries on macOS: ${SDL2_IMAGE_LIBRARIES}")
+                foreach(lib ${SDL2_IMAGE_LIBRARIES})
+                    message(STATUS "  Checking library: ${lib}")
+                    if(lib MATCHES "SDL2_image" AND NOT lib STREQUAL "SDL2")
+                        list(APPEND LINK_LIBRARIES ${lib})
+                        message(STATUS "  Adding SDL2_image library: ${lib}")
+                        break()
+                    endif()
+                endforeach()
+            else()
+                list(APPEND LINK_LIBRARIES ${SDL2_IMAGE_LIBRARIES})
+                message(STATUS "  Adding all SDL2_image libraries: ${SDL2_IMAGE_LIBRARIES}")
+            endif()
         endif()
         add_compile_definitions(SDL2_IMAGE_FOUND)
     endif()
@@ -349,6 +461,7 @@ if(BUILD_GUI)
         list(APPEND LINK_LIBRARIES opengl32)
     elseif(APPLE)
         list(APPEND LINK_LIBRARIES "-framework OpenGL")
+        target_compile_definitions(${TARGET_NAME} PRIVATE GL_SILENCE_DEPRECATION)
     else()
         list(APPEND LINK_LIBRARIES GL)
     endif()
@@ -452,6 +565,7 @@ if(BUILD_TESTS)
             target_link_libraries(test_gui opengl32)
         elseif(APPLE)
             target_link_libraries(test_gui "-framework OpenGL")
+            target_compile_definitions(test_gui PRIVATE GL_SILENCE_DEPRECATION)
         else()
             target_link_libraries(test_gui GL)
         endif()

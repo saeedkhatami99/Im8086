@@ -89,6 +89,26 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           brew install sdl2 sdl2_image ncurses
+          
+          echo "=== SDL2_image Installation Debug ==="
+          echo "Homebrew prefix for sdl2_image:"
+          brew --prefix sdl2_image || echo "brew --prefix sdl2_image failed"
+          
+          echo "Checking common header locations:"
+          ls -la /opt/homebrew/include/SDL2/SDL_image.h 2>/dev/null || echo "Not found: /opt/homebrew/include/SDL2/SDL_image.h"
+          ls -la /usr/local/include/SDL2/SDL_image.h 2>/dev/null || echo "Not found: /usr/local/include/SDL2/SDL_image.h"
+          ls -la /opt/homebrew/include/SDL_image.h 2>/dev/null || echo "Not found: /opt/homebrew/include/SDL_image.h"
+          ls -la /usr/local/include/SDL_image.h 2>/dev/null || echo "Not found: /usr/local/include/SDL_image.h"
+          
+          echo "Checking common library locations:"
+          ls -la /opt/homebrew/lib/libSDL2_image* 2>/dev/null || echo "Not found: /opt/homebrew/lib/libSDL2_image*"
+          ls -la /usr/local/lib/libSDL2_image* 2>/dev/null || echo "Not found: /usr/local/lib/libSDL2_image*"
+          
+          echo "SDL2_image pkg-config:"
+          pkg-config --exists SDL2_image && echo "SDL2_image pkg-config found" || echo "SDL2_image pkg-config not found"
+          pkg-config --cflags SDL2_image 2>/dev/null || echo "SDL2_image cflags not available"
+          pkg-config --libs SDL2_image 2>/dev/null || echo "SDL2_image libs not available"
+          echo "=== End Debug ==="
 
       - name: Create build directory
         run: mkdir build
@@ -99,7 +119,7 @@ jobs:
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
           else
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON --debug-output
           fi
         shell: bash
 
