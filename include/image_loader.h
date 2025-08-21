@@ -1,6 +1,13 @@
 #ifndef IMAGE_LOADER_H
 #define IMAGE_LOADER_H
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#define VC_EXTRALEAN
+#define NOGDI
+#endif
+
 #ifdef __APPLE__
     #include <OpenGL/gl.h>
 #else

@@ -1,4 +1,12 @@
 #include "image_loader.h"
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#define VC_EXTRALEAN
+#define NOGDI
+#endif
+
 #ifdef __APPLE__
     #include <SDL2/SDL.h>
     #include <SDL_opengl.h>
