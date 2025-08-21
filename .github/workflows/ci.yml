@@ -35,7 +35,7 @@ jobs:
         run: |
           cd build
           cmake .. \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTS=ON \
             --debug-output
 
@@ -50,7 +50,6 @@ jobs:
           ./test_emulator
 
       - name: Create portable package
-        if: matrix.build_type == 'Release'
         run: |
           cd build
           rm -rf Im8086
@@ -105,7 +104,6 @@ jobs:
           tar -czf Im8086-ubuntu-latest.tar.gz Im8086/
 
       - name: Upload Linux artifacts
-        if: matrix.build_type == 'Release'
         uses: actions/upload-artifact@v4
         with:
           name: Im8086-ubuntu-latest
@@ -209,7 +207,6 @@ jobs:
         shell: cmd
 
       - name: Upload Windows artifacts
-        if: matrix.build_type == 'Release'
         uses: actions/upload-artifact@v4
         with:
           name: Im8086-windows-latest
@@ -314,7 +311,6 @@ jobs:
           tar -czf Im8086-macos-latest.tar.gz Im8086/
 
       - name: Upload macOS artifacts
-        if: matrix.build_type == 'Release'
         uses: actions/upload-artifact@v4
         with:
           name: Im8086-macos-latest
