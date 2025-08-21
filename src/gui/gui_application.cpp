@@ -10,18 +10,7 @@
 #include <sstream>
 #include <stdexcept>
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#include <commdlg.h>
-#include <io.h>
-#define popen _popen
-#define pclose _pclose
-#else
-#include <unistd.h>
-#endif
-
+// Include SDL and OpenGL headers first to avoid conflicts with Windows GL headers
 #ifdef __APPLE__
     #include <SDL2/SDL.h>
     #include <SDL_opengl.h>
@@ -33,6 +22,19 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_internal.h>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#define VC_EXTRALEAN
+#include <windows.h>
+#include <commdlg.h>
+#include <io.h>
+#define popen _popen
+#define pclose _pclose
+#else
+#include <unistd.h>
+#endif
 
 #include "emulator8086.h"
 #include "version.h"
