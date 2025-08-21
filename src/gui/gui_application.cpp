@@ -1,27 +1,11 @@
+#ifdef USE_GLAD
+#include "opengl_modern.h"
+#else
+#include "platform_opengl.h"
+#endif
+
 #ifdef _WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#ifndef VC_EXTRALEAN
-#define VC_EXTRALEAN  
-#endif
-#ifndef NOGDI
-#define NOGDI
-#endif
-#include <windows.h>
-#include <commdlg.h>
 #include <io.h>
-#ifdef APIENTRY
-#undef APIENTRY
-#endif
-#ifdef WINGDIAPI
-#undef WINGDIAPI
-#endif
-#define popen _popen
-#define pclose _pclose
 #else
 #include <unistd.h>
 #endif
@@ -38,13 +22,6 @@
 #include <sstream>
 #include <stdexcept>
 
-#ifdef __APPLE__
-    #include <SDL2/SDL.h>
-    #include <SDL_opengl.h>
-#else
-    #include <SDL2/SDL.h>
-    #include <SDL2/SDL_opengl.h>
-#endif
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>

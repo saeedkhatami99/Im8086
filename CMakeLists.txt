@@ -10,7 +10,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
-
 option(BUILD_STATIC "Build static executable" OFF)
 option(BUILD_PORTABLE "Build portable executable with bundled libraries" OFF)
 set(TARGET_NAME "Im8086")
@@ -27,7 +26,18 @@ endif()
 
 if (MSVC)
   add_compile_options(/W4 /permissive-)
-  add_compile_definitions(WIN32_LEAN_AND_MEAN NOMINMAX VC_EXTRALEAN NOGDI)
+  add_compile_definitions(
+    WIN32_LEAN_AND_MEAN 
+    NOMINMAX 
+    VC_EXTRALEAN 
+    NOGDI 
+    NOSERVICE 
+    NOMCX 
+    NOIME
+    STRICT
+    _CRT_SECURE_NO_WARNINGS
+  )
+  add_compile_options(/wd4005 /wd4996)
   if(BUILD_STATIC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   endif()
@@ -268,6 +278,15 @@ if(BUILD_STATIC AND SDL2_FOUND)
 endif()
 
 find_package(OpenGL QUIET)
+
+option(USE_GLAD "Use GLAD for OpenGL loading" ON)
+if(USE_GLAD)
+    message(STATUS "GLAD support enabled")
+    add_compile_definitions(USE_GLAD)
+    include_directories(third_party/glad)
+    add_compile_definitions(GLAD_GL_IMPLEMENTATION)
+endif()
+
 set(BUILD_GUI OFF)
 
 if(SDL2_FOUND AND OPENGL_FOUND)
@@ -674,6 +693,20 @@ if(BUILD_TUI)
 endif()
 
 message(STATUS "===============================")
+
+if(BUILD_GUI)
+    add_executable(test_opengl_headers tests/test_opengl_headers.cpp)
+    target_include_directories(test_opengl_headers PRIVATE include)
+    if(USE_GLAD)
+        target_compile_definitions(test_opengl_headers PRIVATE USE_GLAD)
+    endif()
+    
+    add_custom_target(test-opengl-headers
+        COMMAND test_opengl_headers
+        DEPENDS test_opengl_headers
+        COMMENT "Testing OpenGL header inclusion for cross-platform conflicts"
+    )
+endif()
 
 add_custom_target(show-help
     COMMAND ${CMAKE_COMMAND} -E echo "Available targets:"
