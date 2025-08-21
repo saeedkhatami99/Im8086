@@ -35,23 +35,23 @@ else()
 endif()
 
 include_directories(include)
-find_package(PkgConfig QUIET)
-find_package(SDL2 QUIET)
+find_package(PkgConfig REQUIRED)
+find_package(SDL2 REQUIRED)
 
 if(NOT SDL2_FOUND)
-    find_package(SDL2 QUIET CONFIG)
+    find_package(SDL2 REQUIRED CONFIG)
 endif()
 
 if(NOT SDL2_FOUND AND PkgConfig_FOUND)
-    pkg_check_modules(SDL2 QUIET sdl2)
+    pkg_check_modules(SDL2 REQUIRED sdl2)
 endif()
 
 if(PkgConfig_FOUND)
-    pkg_check_modules(SDL2_IMAGE QUIET SDL2_image)
+    pkg_check_modules(SDL2_IMAGE REQUIRED SDL2_image)
 endif()
 
 if(NOT SDL2_IMAGE_FOUND)
-    find_package(SDL2_image QUIET)
+    find_package(SDL2_image REQUIRED)
 endif()
 
 if(NOT SDL2_IMAGE_FOUND AND APPLE)
@@ -408,6 +408,11 @@ if(BUILD_GUI)
         ${OPENGL_LIBRARIES}
     )
     
+    # Add SDL2 library directories
+    if(SDL2_LIBRARY_DIRS)
+        target_link_directories(${TARGET_NAME} PRIVATE ${SDL2_LIBRARY_DIRS})
+        message(STATUS "Added SDL2 library directories: ${SDL2_LIBRARY_DIRS}")
+    endif()
     
     if(TARGET SDL2::SDL2)
         list(APPEND LINK_LIBRARIES SDL2::SDL2 SDL2::SDL2main)
@@ -423,6 +428,14 @@ if(BUILD_GUI)
             message(STATUS "  TARGET SDL2_image::SDL2_image exists: NO")
         endif()
         message(STATUS "  SDL2_IMAGE_LIBRARIES: ${SDL2_IMAGE_LIBRARIES}")
+        message(STATUS "  SDL2_IMAGE_LIBRARY_DIRS: ${SDL2_IMAGE_LIBRARY_DIRS}")
+        message(STATUS "  SDL2_IMAGE_LDFLAGS: ${SDL2_IMAGE_LDFLAGS}")
+        
+        # Add library directories first
+        if(SDL2_IMAGE_LIBRARY_DIRS)
+            target_link_directories(${TARGET_NAME} PRIVATE ${SDL2_IMAGE_LIBRARY_DIRS})
+            message(STATUS "  Added library directories: ${SDL2_IMAGE_LIBRARY_DIRS}")
+        endif()
         
         if(TARGET SDL2_image::SDL2_image)
             list(APPEND LINK_LIBRARIES SDL2_image::SDL2_image)
@@ -550,6 +563,11 @@ if(BUILD_TESTS)
         endif()
         
         if(SDL2_IMAGE_FOUND)
+            # Add library directories for test_gui
+            if(SDL2_IMAGE_LIBRARY_DIRS)
+                target_link_directories(test_gui PRIVATE ${SDL2_IMAGE_LIBRARY_DIRS})
+            endif()
+            
             if(TARGET SDL2_image::SDL2_image)
                 target_link_libraries(test_gui SDL2_image::SDL2_image)
             elseif(SDL2_IMAGE_LIBRARIES)
