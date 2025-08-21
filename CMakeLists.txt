@@ -279,9 +279,10 @@ endif()
 
 find_package(OpenGL QUIET)
 
-option(USE_GLAD "Use GLAD for OpenGL loading" ON)
-if(USE_GLAD)
-    message(STATUS "GLAD support enabled")
+option(USE_GLAD "Use GLAD for OpenGL loading" OFF)
+if(WIN32)
+    set(USE_GLAD ON)
+    message(STATUS "GLAD support enabled for Windows")
     add_compile_definitions(USE_GLAD)
     include_directories(third_party/glad)
     add_compile_definitions(GLAD_GL_IMPLEMENTATION)
@@ -693,20 +694,6 @@ if(BUILD_TUI)
 endif()
 
 message(STATUS "===============================")
-
-if(BUILD_GUI)
-    add_executable(test_opengl_headers tests/test_opengl_headers.cpp)
-    target_include_directories(test_opengl_headers PRIVATE include)
-    if(USE_GLAD)
-        target_compile_definitions(test_opengl_headers PRIVATE USE_GLAD)
-    endif()
-    
-    add_custom_target(test-opengl-headers
-        COMMAND test_opengl_headers
-        DEPENDS test_opengl_headers
-        COMMENT "Testing OpenGL header inclusion for cross-platform conflicts"
-    )
-endif()
 
 add_custom_target(show-help
     COMMAND ${CMAKE_COMMAND} -E echo "Available targets:"

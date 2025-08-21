@@ -23,9 +23,11 @@
     #ifdef WINGDIAPI
     #undef WINGDIAPI
     #endif
-#endif
 
-#include <gl.h>
+    #include <gl.h>
+#else
+    #include "platform_opengl.h"
+#endif
 
 #ifdef __APPLE__
     #include <SDL2/SDL.h>
@@ -36,8 +38,12 @@
 #endif
 
 inline bool initializeModernOpenGL() {
-    #ifdef GLAD_GL_VERSION_3_3
-        return gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
+    #ifdef _WIN32
+        #ifdef GLAD_GL_VERSION_3_3
+            return gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
+        #else
+            return true;
+        #endif
     #else
         return true;
     #endif

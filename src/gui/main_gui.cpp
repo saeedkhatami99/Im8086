@@ -1,4 +1,4 @@
-#ifdef USE_GLAD
+#ifdef _WIN32
 #include "opengl_modern.h"
 #else
 #include "platform_opengl.h"
