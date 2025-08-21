@@ -12,7 +12,7 @@
 
 #include "gui/gui_application.h"
 #include "image_loader.h"
-#include "platform_dialogs.h"
+#include "imgui_file_dialog.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -100,6 +100,7 @@ bool commandExists(const std::string& command) {
 
 GUIApplication::GUIApplication() {
     assemblyEditorCharBuffer[0] = '\0';
+    fileDialog = std::make_unique<ImGuiFileDialog>();
 }
 GUIApplication::~GUIApplication() {
     shutdown();
@@ -1515,92 +1516,32 @@ void GUIApplication::renderStackWindow() {
 }
 
 void GUIApplication::renderFileDialog() {
-    if (!showFileDialog) {
-        return;
+    if (showFileDialog && !fileDialog->isOpen()) {
+        fileDialog->open();
+        ImGui::OpenPopup("Open Assembly File");
     }
-
-    std::string selectedFile = openFileDialog();
-    if (!selectedFile.empty()) {
-        if (loadAssemblyFile(selectedFile)) {
-            syncEditorBuffer();
-            assemblyEditorModified = false;
+    
+    if (fileDialog->display("Open Assembly File")) {
+        std::string selectedFile = fileDialog->getSelectedFile();
+        if (!selectedFile.empty()) {
+            if (loadAssemblyFile(selectedFile)) {
+                syncEditorBuffer();
+                assemblyEditorModified = false;
+            }
         }
         showFileDialog = false;
-        return;
     }
-
-    if (ImGui::Begin("Open Assembly File", &showFileDialog, ImGuiWindowFlags_AlwaysAutoResize)) {
-        static char pathBuffer[512] = "./";
-        static std::vector<std::string> files;
-        static std::vector<std::string> directories;
-        static bool needRefresh = true;
-
-        if (needRefresh) {
-            files.clear();
-            directories.clear();
-
-            const char* testFiles[] = {"samples/sample_01.txt",
-                                       "samples/sample_02.txt",
-                                       "samples/sample_03.txt",
-                                       "samples/tui/sample_01.asm",
-                                       "samples/tui/sample_02.asm",
-                                       "samples/tui/test_ide.asm"};
-
-            for (const char* file : testFiles) {
-                std::ifstream test(file);
-                if (test.good()) {
-                    files.push_back(file);
-                }
-            }
-
-            needRefresh = false;
-        }
-
-        ImGui::Text("Current directory: %s", pathBuffer);
-        ImGui::Separator();
-
-        ImGui::Text("Assembly Files:");
-        for (size_t i = 0; i < files.size(); ++i) {
-            if (ImGui::Selectable(files[i].c_str())) {
-                if (loadAssemblyFile(files[i])) {
-                    syncEditorBuffer();
-                    assemblyEditorModified = false;
-                }
-                showFileDialog = false;
-                break;
-            }
-        }
-
-        ImGui::Separator();
-        ImGui::Text("Enter file path manually:");
-        static char manualPath[512] = "";
-        if (ImGui::InputText("##manualpath",
-                             manualPath,
-                             sizeof(manualPath),
-                             ImGuiInputTextFlags_EnterReturnsTrue)) {
-            if (strlen(manualPath) > 0) {
-                if (loadAssemblyFile(manualPath)) {
-                    syncEditorBuffer();
-                    assemblyEditorModified = false;
-                }
-                showFileDialog = false;
-            }
-        }
-
-        if (ImGui::Button("Cancel")) {
-            showFileDialog = false;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Refresh")) {
-            needRefresh = true;
-        }
-        
-        ImGui::End();
+    
+    if (!fileDialog->isOpen() && showFileDialog) {
+        showFileDialog = false;
     }
 }
 
-std::string GUIApplication::openFileDialog(const std::string& title, const std::string& filters) {
-    return PlatformDialogs::openFileDialog();
+std::string GUIApplication::openFileDialog(const std::string& /* title */, const std::string& /* filters */) {
+    if (!fileDialog->isOpen()) {
+        fileDialog->open();
+    }
+    return ""; // Return empty string for now, the dialog will be handled in the render loop
 }
 
 bool GUIApplication::isFileDialogAvailable() {

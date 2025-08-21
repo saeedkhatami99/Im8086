@@ -12,6 +12,7 @@
 #endif
 #include "image_loader.h"
 
+class ImGuiFileDialog;
 struct ImGuiContext;
 struct ImGuiInputTextCallbackData;
 typedef union SDL_Event SDL_Event;
@@ -40,6 +41,7 @@ class GUIApplication {
     ImGuiContext* imguiContext = nullptr;
 
     std::unique_ptr<Emulator8086> emulator;
+    std::unique_ptr<ImGuiFileDialog> fileDialog;
     std::string loadedFilePath;
     std::vector<std::string> assemblyLines;
 
