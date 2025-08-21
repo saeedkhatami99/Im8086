@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(Im8086 
-    VERSION 1.1.1
+    VERSION 1.2.1
     DESCRIPTION "Intel 8086 Microprocessor Emulator with GUI and TUI"
     LANGUAGES CXX
 )
@@ -10,7 +10,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
-
 option(BUILD_STATIC "Build static executable" OFF)
 option(BUILD_PORTABLE "Build portable executable with bundled libraries" OFF)
 set(TARGET_NAME "Im8086")
@@ -27,6 +26,18 @@ endif()
 
 if (MSVC)
   add_compile_options(/W4 /permissive-)
+  add_compile_definitions(
+    WIN32_LEAN_AND_MEAN 
+    NOMINMAX 
+    VC_EXTRALEAN 
+    NOGDI 
+    NOSERVICE 
+    NOMCX 
+    NOIME
+    STRICT
+    _CRT_SECURE_NO_WARNINGS
+  )
+  add_compile_options(/wd4005 /wd4996)
   if(BUILD_STATIC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   endif()
@@ -35,15 +46,185 @@ else()
 endif()
 
 include_directories(include)
-find_package(PkgConfig QUIET)
-find_package(SDL2 QUIET)
+find_package(PkgConfig)
+find_package(SDL2 REQUIRED)
 
 if(NOT SDL2_FOUND)
-    find_package(SDL2 QUIET CONFIG)
+    find_package(SDL2 REQUIRED CONFIG)
 endif()
 
 if(NOT SDL2_FOUND AND PkgConfig_FOUND)
-    pkg_check_modules(SDL2 QUIET sdl2)
+    pkg_check_modules(SDL2 REQUIRED sdl2)
+endif()
+
+if(PkgConfig_FOUND)
+    pkg_check_modules(SDL2_IMAGE REQUIRED SDL2_image)
+endif()
+
+if(NOT SDL2_IMAGE_FOUND)
+    find_package(SDL2_image REQUIRED)
+endif()
+
+if(NOT SDL2_IMAGE_FOUND AND APPLE)
+    message(STATUS "Debugging SDL2_image detection on macOS...")
+    
+    execute_process(COMMAND ls -la /opt/homebrew/include/SDL2/SDL_image.h
+                   OUTPUT_VARIABLE HOMEBREW_ARM_HEADER
+                   ERROR_QUIET)
+    execute_process(COMMAND ls -la /usr/local/include/SDL2/SDL_image.h
+                   OUTPUT_VARIABLE HOMEBREW_INTEL_HEADER
+                   ERROR_QUIET)
+    execute_process(COMMAND ls -la /opt/homebrew/include/SDL_image.h
+                   OUTPUT_VARIABLE HOMEBREW_ARM_HEADER_DIRECT
+                   ERROR_QUIET)
+    execute_process(COMMAND ls -la /usr/local/include/SDL_image.h
+                   OUTPUT_VARIABLE HOMEBREW_INTEL_HEADER_DIRECT
+                   ERROR_QUIET)
+    
+    if(HOMEBREW_ARM_HEADER)
+        message(STATUS "Found: /opt/homebrew/include/SDL2/SDL_image.h")
+    endif()
+    if(HOMEBREW_INTEL_HEADER)
+        message(STATUS "Found: /usr/local/include/SDL2/SDL_image.h")
+    endif()
+    if(HOMEBREW_ARM_HEADER_DIRECT)
+        message(STATUS "Found: /opt/homebrew/include/SDL_image.h")
+    endif()
+    if(HOMEBREW_INTEL_HEADER_DIRECT)
+        message(STATUS "Found: /usr/local/include/SDL_image.h")
+    endif()
+    
+    execute_process(COMMAND ls -la /opt/homebrew/lib/libSDL2_image*
+                   OUTPUT_VARIABLE HOMEBREW_ARM_LIB
+                   ERROR_QUIET)
+    execute_process(COMMAND ls -la /usr/local/lib/libSDL2_image*
+                   OUTPUT_VARIABLE HOMEBREW_INTEL_LIB
+                   ERROR_QUIET)
+    
+    if(HOMEBREW_ARM_LIB)
+        message(STATUS "Found ARM Homebrew SDL2_image libs: ${HOMEBREW_ARM_LIB}")
+    endif()
+    if(HOMEBREW_INTEL_LIB)
+        message(STATUS "Found Intel Homebrew SDL2_image libs: ${HOMEBREW_INTEL_LIB}")
+    endif()
+    
+    execute_process(
+        COMMAND brew --prefix sdl2_image
+        OUTPUT_VARIABLE SDL2_IMAGE_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    
+    if(SDL2_IMAGE_PREFIX)
+        message(STATUS "Homebrew SDL2_image prefix: ${SDL2_IMAGE_PREFIX}")
+        execute_process(COMMAND ls -la ${SDL2_IMAGE_PREFIX}/include
+                       OUTPUT_VARIABLE PREFIX_INCLUDE_CONTENTS
+                       ERROR_QUIET)
+        execute_process(COMMAND ls -la ${SDL2_IMAGE_PREFIX}/lib
+                       OUTPUT_VARIABLE PREFIX_LIB_CONTENTS
+                       ERROR_QUIET)
+        if(PREFIX_INCLUDE_CONTENTS)
+            message(STATUS "Contents of ${SDL2_IMAGE_PREFIX}/include: ${PREFIX_INCLUDE_CONTENTS}")
+        endif()
+        if(PREFIX_LIB_CONTENTS)
+            message(STATUS "Contents of ${SDL2_IMAGE_PREFIX}/lib: ${PREFIX_LIB_CONTENTS}")
+        endif()
+        
+        find_path(SDL2_IMAGE_INCLUDE_DIRS SDL_image.h
+            PATHS 
+                ${SDL2_IMAGE_PREFIX}/include
+                ${SDL2_IMAGE_PREFIX}/include/SDL2
+            NO_DEFAULT_PATH
+        )
+        
+        if(NOT SDL2_IMAGE_INCLUDE_DIRS)
+            find_path(SDL2_IMAGE_INCLUDE_DIRS SDL_image.h
+                PATHS ${SDL2_IMAGE_PREFIX}/include/SDL2
+                NO_DEFAULT_PATH
+            )
+        endif()
+        
+        find_library(SDL2_IMAGE_LIBRARIES
+            NAMES SDL2_image libSDL2_image
+            PATHS ${SDL2_IMAGE_PREFIX}/lib
+            NO_DEFAULT_PATH
+        )
+        
+        if(SDL2_IMAGE_INCLUDE_DIRS AND SDL2_IMAGE_LIBRARIES)
+            set(SDL2_IMAGE_FOUND TRUE)
+            message(STATUS "Found SDL2_image via Homebrew: ${SDL2_IMAGE_LIBRARIES}")
+        endif()
+    endif()
+    
+    if(NOT SDL2_IMAGE_FOUND)
+        find_library(SDL2_IMAGE_LIBRARIES
+            NAMES SDL2_image libSDL2_image
+            PATHS 
+                /usr/local/lib
+                /opt/homebrew/lib
+                /usr/lib
+        )
+        
+        find_path(SDL2_IMAGE_INCLUDE_DIRS SDL_image.h
+            PATHS 
+                /usr/local/include
+                /usr/local/include/SDL2
+                /opt/homebrew/include
+                /opt/homebrew/include/SDL2
+                /usr/include
+                /usr/include/SDL2
+        )
+        
+        if(SDL2_IMAGE_INCLUDE_DIRS AND SDL2_IMAGE_LIBRARIES)
+            set(SDL2_IMAGE_FOUND TRUE)
+            message(STATUS "Found SDL2_image in system paths: ${SDL2_IMAGE_LIBRARIES}")
+        endif()
+    endif()
+endif()
+
+if(NOT SDL2_IMAGE_FOUND)
+    find_path(SDL2_IMAGE_INCLUDE_DIRS SDL_image.h
+        HINTS
+        ENV SDL2_IMAGE_DIR
+        PATH_SUFFIXES include SDL2 include/SDL2
+        PATHS
+        ${CMAKE_PREFIX_PATH}
+        /usr/local
+        /usr
+        /opt/homebrew
+        /usr/local/Cellar/sdl2_image
+    )
+
+    find_library(SDL2_IMAGE_LIBRARIES
+        NAMES SDL2_image SDL2_image-2.0
+        HINTS
+        ENV SDL2_IMAGE_DIR
+        PATH_SUFFIXES lib lib64 lib/x64 lib/x86
+        PATHS
+        ${CMAKE_PREFIX_PATH}
+        /usr/local
+        /usr
+        /opt/homebrew/lib
+        /usr/local/lib
+    )
+    
+    if(SDL2_IMAGE_INCLUDE_DIRS AND SDL2_IMAGE_LIBRARIES)
+        set(SDL2_IMAGE_FOUND TRUE)
+        message(STATUS "Found SDL2_image manually: ${SDL2_IMAGE_LIBRARIES}")
+        if(APPLE)
+            message(STATUS "SDL2_image raw libraries: ${SDL2_IMAGE_LIBRARIES}")
+            foreach(lib ${SDL2_IMAGE_LIBRARIES})
+                if(lib MATCHES "SDL2_image")
+                    set(SDL2_IMAGE_MAIN_LIB ${lib})
+                    break()
+                endif()
+            endforeach()
+            if(SDL2_IMAGE_MAIN_LIB)
+                set(SDL2_IMAGE_LIBRARIES ${SDL2_IMAGE_MAIN_LIB})
+                message(STATUS "Using SDL2_image library: ${SDL2_IMAGE_LIBRARIES}")
+            endif()
+        endif()
+    endif()
 endif()
 
 if(NOT SDL2_FOUND AND WIN32)
@@ -97,6 +278,16 @@ if(BUILD_STATIC AND SDL2_FOUND)
 endif()
 
 find_package(OpenGL QUIET)
+
+option(USE_GLAD "Use GLAD for OpenGL loading" OFF)
+if(WIN32)
+    set(USE_GLAD ON)
+    message(STATUS "GLAD support enabled for Windows")
+    add_compile_definitions(USE_GLAD)
+    include_directories(third_party/glad)
+    add_compile_definitions(GLAD_GL_IMPLEMENTATION)
+endif()
+
 set(BUILD_GUI OFF)
 
 if(SDL2_FOUND AND OPENGL_FOUND)
@@ -203,6 +394,10 @@ if(BUILD_GUI)
     list(APPEND GUI_SOURCES
         src/gui/gui_application.cpp
         src/gui/main_gui.cpp
+        src/gui/splash_window.cpp
+        src/image_loader.cpp
+        src/imgui_file_dialog.cpp
+        src/theme_detector.cpp
     )
 endif()
 
@@ -236,6 +431,10 @@ if(BUILD_GUI)
         ${OPENGL_LIBRARIES}
     )
     
+    if(SDL2_LIBRARY_DIRS)
+        target_link_directories(${TARGET_NAME} PRIVATE ${SDL2_LIBRARY_DIRS})
+        message(STATUS "Added SDL2 library directories: ${SDL2_LIBRARY_DIRS}")
+    endif()
     
     if(TARGET SDL2::SDL2)
         list(APPEND LINK_LIBRARIES SDL2::SDL2 SDL2::SDL2main)
@@ -243,8 +442,47 @@ if(BUILD_GUI)
         list(APPEND LINK_LIBRARIES ${SDL2_LIBRARIES})
     endif()
     
+    if(SDL2_IMAGE_FOUND)
+        message(STATUS "SDL2_image linking debug:")
+        if(TARGET SDL2_image::SDL2_image)
+            message(STATUS "  TARGET SDL2_image::SDL2_image exists: YES")
+        else()
+            message(STATUS "  TARGET SDL2_image::SDL2_image exists: NO")
+        endif()
+        message(STATUS "  SDL2_IMAGE_LIBRARIES: ${SDL2_IMAGE_LIBRARIES}")
+        message(STATUS "  SDL2_IMAGE_LIBRARY_DIRS: ${SDL2_IMAGE_LIBRARY_DIRS}")
+        message(STATUS "  SDL2_IMAGE_LDFLAGS: ${SDL2_IMAGE_LDFLAGS}")
+        
+        if(SDL2_IMAGE_LIBRARY_DIRS)
+            target_link_directories(${TARGET_NAME} PRIVATE ${SDL2_IMAGE_LIBRARY_DIRS})
+            message(STATUS "  Added library directories: ${SDL2_IMAGE_LIBRARY_DIRS}")
+        endif()
+        
+        if(TARGET SDL2_image::SDL2_image)
+            list(APPEND LINK_LIBRARIES SDL2_image::SDL2_image)
+            message(STATUS "  Using target: SDL2_image::SDL2_image")
+        elseif(SDL2_IMAGE_LIBRARIES)
+            if(APPLE AND SDL2_IMAGE_LIBRARIES MATCHES ";")
+                message(STATUS "  Detected multiple libraries on macOS: ${SDL2_IMAGE_LIBRARIES}")
+                foreach(lib ${SDL2_IMAGE_LIBRARIES})
+                    message(STATUS "  Checking library: ${lib}")
+                    if(lib MATCHES "SDL2_image" AND NOT lib STREQUAL "SDL2")
+                        list(APPEND LINK_LIBRARIES ${lib})
+                        message(STATUS "  Adding SDL2_image library: ${lib}")
+                        break()
+                    endif()
+                endforeach()
+            else()
+                list(APPEND LINK_LIBRARIES ${SDL2_IMAGE_LIBRARIES})
+                message(STATUS "  Adding all SDL2_image libraries: ${SDL2_IMAGE_LIBRARIES}")
+            endif()
+        endif()
+        add_compile_definitions(SDL2_IMAGE_FOUND)
+    endif()
+    
     target_include_directories(${TARGET_NAME} PRIVATE 
         ${SDL2_INCLUDE_DIRS}
+        ${SDL2_IMAGE_INCLUDE_DIRS}
         ${IMGUI_DIR}
         ${IMGUI_DIR}/backends
     )
@@ -257,6 +495,7 @@ if(BUILD_GUI)
         list(APPEND LINK_LIBRARIES opengl32)
     elseif(APPLE)
         list(APPEND LINK_LIBRARIES "-framework OpenGL")
+        target_compile_definitions(${TARGET_NAME} PRIVATE GL_SILENCE_DEPRECATION)
     else()
         list(APPEND LINK_LIBRARIES GL)
     endif()
@@ -266,8 +505,9 @@ if(LINK_LIBRARIES)
     target_link_libraries(${TARGET_NAME} ${LINK_LIBRARIES})
     if(BUILD_STATIC AND BUILD_GUI AND SDL2_FOUND)
         if(WIN32)
-            
-            target_link_libraries(${TARGET_NAME} winmm setupapi version imm32)
+            target_link_libraries(${TARGET_NAME} winmm setupapi version imm32 dwmapi)
+        elseif(APPLE)
+            target_link_libraries(${TARGET_NAME} "-framework CoreFoundation")
         elseif(UNIX AND SDL2_STATIC_DEPS)
             
             target_link_libraries(${TARGET_NAME} ${SDL2_STATIC_DEPS})
@@ -284,8 +524,20 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
     )
 endif()
 
+add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/resources
+    ${CMAKE_BINARY_DIR}/resources
+    COMMENT "Copying resources folder to build directory"
+)
+
 install(TARGETS ${TARGET_NAME} 
     RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/resources
+    DESTINATION .
+    COMPONENT Runtime
 )
 
 add_custom_target(run
@@ -308,12 +560,17 @@ if(BUILD_TESTS)
         add_executable(test_gui
             tests/test_gui.cpp
             src/gui/gui_application.cpp
+            src/gui/splash_window.cpp
+            src/image_loader.cpp
+            src/imgui_file_dialog.cpp
+            src/theme_detector.cpp
             ${CORE_SOURCES}
         )
         target_include_directories(test_gui PRIVATE 
             include 
             tests
             ${SDL2_INCLUDE_DIRS}
+            ${SDL2_IMAGE_INCLUDE_DIRS}
             ${IMGUI_DIR}
             ${IMGUI_DIR}/backends
         )
@@ -328,16 +585,38 @@ if(BUILD_TESTS)
         elseif(SDL2_LIBRARIES)
             target_link_libraries(test_gui ${SDL2_LIBRARIES})
         endif()
+        
+        if(SDL2_IMAGE_FOUND)
+            if(SDL2_IMAGE_LIBRARY_DIRS)
+                target_link_directories(test_gui PRIVATE ${SDL2_IMAGE_LIBRARY_DIRS})
+            endif()
+            
+            if(TARGET SDL2_image::SDL2_image)
+                target_link_libraries(test_gui SDL2_image::SDL2_image)
+            elseif(SDL2_IMAGE_LIBRARIES)
+                target_link_libraries(test_gui ${SDL2_IMAGE_LIBRARIES})
+            endif()
+            target_compile_definitions(test_gui PRIVATE SDL2_IMAGE_FOUND)
+        endif()
+        
         if(SDL2_CFLAGS_OTHER)
             target_compile_definitions(test_gui PRIVATE ${SDL2_CFLAGS_OTHER})
         endif()
         if(WIN32)
-            target_link_libraries(test_gui opengl32)
+            target_link_libraries(test_gui opengl32 dwmapi)
         elseif(APPLE)
-            target_link_libraries(test_gui "-framework OpenGL")
+            target_link_libraries(test_gui "-framework OpenGL" "-framework CoreFoundation")
+            target_compile_definitions(test_gui PRIVATE GL_SILENCE_DEPRECATION)
         else()
             target_link_libraries(test_gui GL)
         endif()
+        
+        add_custom_command(TARGET test_gui POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/resources
+            ${CMAKE_BINARY_DIR}/resources
+            COMMENT "Copying resources folder for test_gui"
+        )
     endif()
     
     add_custom_target(test
@@ -400,6 +679,14 @@ message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 if(BUILD_GUI)
     message(STATUS "SDL2 found: ${SDL2_FOUND}")
+    message(STATUS "SDL2_image found: ${SDL2_IMAGE_FOUND}")
+    if(SDL2_IMAGE_FOUND)
+        if(TARGET SDL2_image::SDL2_image)
+            message(STATUS "SDL2_image target: SDL2_image::SDL2_image")
+        elseif(SDL2_IMAGE_LIBRARIES)
+            message(STATUS "SDL2_image libraries: ${SDL2_IMAGE_LIBRARIES}")
+        endif()
+    endif()
     message(STATUS "OpenGL found: ${OPENGL_FOUND}")
 endif()
 

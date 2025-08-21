@@ -1,4 +1,11 @@
 #define SDL_MAIN_HANDLED
+
+#ifdef _WIN32
+#include "opengl_modern.h"
+#else
+#include "platform_opengl.h"
+#endif
+
 #include "gui/gui_application.h"
 #include "test_framework.h"
 

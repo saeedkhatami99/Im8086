@@ -5,8 +5,14 @@
 #include <string>
 #include <vector>
 
-#include <SDL2/SDL.h>
+#ifdef __APPLE__
+    #include <SDL2/SDL.h>
+#else
+    #include <SDL2/SDL.h>
+#endif
+#include "image_loader.h"
 
+class ImGuiFileDialog;
 struct ImGuiContext;
 struct ImGuiInputTextCallbackData;
 typedef union SDL_Event SDL_Event;
@@ -35,18 +41,21 @@ class GUIApplication {
     ImGuiContext* imguiContext = nullptr;
 
     std::unique_ptr<Emulator8086> emulator;
+    std::unique_ptr<ImGuiFileDialog> fileDialog;
     std::string loadedFilePath;
     std::vector<std::string> assemblyLines;
 
     bool running = false;
     bool initialized = false;
-
     bool showRegistersWindow = true;
     bool showMemoryWindow = true;
     bool showDemoWindow = true;
     bool showAssemblyEditor = true;
     bool showStackWindow = true;
     bool showFileDialog = false;
+    bool showSplashScreen = false;
+    bool splashScreenInitialized = false;
+    Image logoImage;
 
     int memoryViewStart = 0;
     int memoryViewSize = 256;
@@ -72,6 +81,7 @@ class GUIApplication {
     void renderImGui();
     void renderMainMenuBar();
     void renderDemoWindow();
+    void renderSplashScreen();
     void renderAssemblyEditor();
     void renderEmulatorStatus();
     void renderRegistersWindow();

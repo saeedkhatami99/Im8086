@@ -1,4 +1,18 @@
+#ifdef _WIN32
+#include "opengl_modern.h"
+#else
+#include "platform_opengl.h"
+#endif
+
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+
 #include "gui/gui_application.h"
+#include "image_loader.h"
+#include "imgui_file_dialog.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -9,20 +23,6 @@
 #include <sstream>
 #include <stdexcept>
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#include <commdlg.h>
-#include <io.h>
-#define popen _popen
-#define pclose _pclose
-#else
-#include <unistd.h>
-#endif
-
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
@@ -100,6 +100,7 @@ bool commandExists(const std::string& command) {
 
 GUIApplication::GUIApplication() {
     assemblyEditorCharBuffer[0] = '\0';
+    fileDialog = std::make_unique<ImGuiFileDialog>();
 }
 GUIApplication::~GUIApplication() {
     shutdown();
@@ -243,6 +244,8 @@ void GUIApplication::shutdown() {
 
     running = false;
 
+    ImageLoader::unloadImage(logoImage);
+
     emulator.reset();
     cleanupImGui();
     cleanupOpenGL();
@@ -311,6 +314,16 @@ bool GUIApplication::initSDL(int width, int height, const std::string& title) {
 
         if (window) {
             std::cout << "Successfully created window with " << config.description << std::endl;
+            
+            SDL_Surface* iconSurface = ImageLoader::loadImageForIcon("Icon.png");
+            if (iconSurface) {
+                SDL_SetWindowIcon(window, iconSurface);
+                SDL_FreeSurface(iconSurface);
+                std::cout << "Window icon set successfully" << std::endl;
+            } else {
+                std::cout << "Warning: Could not load window icon (Icon.png)" << std::endl;
+            }
+            
             break;
         } else {
             std::cout << "Failed to create window with " << config.description << ": "
@@ -566,6 +579,11 @@ void GUIApplication::render() {
 }
 
 void GUIApplication::renderImGui() {
+    if (showSplashScreen) {
+        renderSplashScreen();
+        return;
+    }
+    
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
@@ -620,6 +638,106 @@ void GUIApplication::renderImGui() {
     renderMemoryWindow();
     renderStackWindow();
     renderFileDialog();
+}
+
+void GUIApplication::renderSplashScreen() {
+    if (!logoImage.loaded) {
+        logoImage = ImageLoader::loadImage("LogoWithBG.png");
+    }
+    
+    if (!logoImage.loaded) {
+        showSplashScreen = false;
+        return;
+    }
+    
+    ImDrawList* drawList = ImGui::GetBackgroundDrawList();
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    
+    float splashHeight = 300.0f;
+    float aspectRatio = (float)logoImage.width / (float)logoImage.height;
+    float splashWidth = splashHeight * aspectRatio;
+    
+    float padding = 10.0f;
+    float windowWidth = splashWidth + (padding * 2);
+    float windowHeight = splashHeight + (padding * 2);
+    
+    ImVec2 windowPos(
+        viewport->Pos.x + (viewport->Size.x - windowWidth) * 0.5f,
+        viewport->Pos.y + (viewport->Size.y - windowHeight) * 0.5f
+    );
+    
+    ImVec2 splashPos(
+        windowPos.x + padding,
+        windowPos.y + padding
+    );
+    
+    static float splashTimer = 0.0f;
+    splashTimer += ImGui::GetIO().DeltaTime;
+    
+    float fadeInDuration = 0.5f;
+    float holdDuration = 2.5f;
+    float fadeOutDuration = 0.5f;
+    float totalDuration = fadeInDuration + holdDuration + fadeOutDuration;
+    
+    float alpha = 1.0f;
+    if (splashTimer < fadeInDuration) {
+        alpha = splashTimer / fadeInDuration;
+    } else if (splashTimer > fadeInDuration + holdDuration) {
+        float fadeProgress = (splashTimer - fadeInDuration - holdDuration) / fadeOutDuration;
+        alpha = 1.0f - fadeProgress;
+    }
+
+    alpha = std::max(0.0f, std::min(1.0f, alpha));
+    
+    if (splashTimer > totalDuration) {
+        showSplashScreen = false;
+        return;
+    }
+
+    ImU32 backgroundColor = IM_COL32(45, 45, 48, (int)(alpha * 240));
+    ImU32 borderColor = IM_COL32(100, 100, 100, (int)(alpha * 180));
+    ImVec2 shadowOffset(3.0f, 3.0f);
+    ImU32 shadowColor = IM_COL32(0, 0, 0, (int)(alpha * 80));
+    drawList->AddRectFilled(
+        ImVec2(windowPos.x + shadowOffset.x, windowPos.y + shadowOffset.y),
+        ImVec2(windowPos.x + windowWidth + shadowOffset.x, windowPos.y + windowHeight + shadowOffset.y),
+        shadowColor,
+        8.0f
+    );
+    
+    drawList->AddRectFilled(
+        windowPos,
+        ImVec2(windowPos.x + windowWidth, windowPos.y + windowHeight),
+        backgroundColor,
+        8.0f
+    );
+
+    drawList->AddRect(
+        windowPos,
+        ImVec2(windowPos.x + windowWidth, windowPos.y + windowHeight),
+        borderColor,
+        8.0f,
+        0,
+        1.5f
+    );
+
+    ImU32 logoColor = IM_COL32(255, 255, 255, (int)(alpha * 255));
+    drawList->AddImage(
+        (void*)(intptr_t)logoImage.textureID,
+        splashPos,
+        ImVec2(splashPos.x + splashWidth, splashPos.y + splashHeight),
+        ImVec2(0, 0),
+        ImVec2(1, 1),
+        logoColor
+    );
+
+    if (ImGui::IsKeyPressed(ImGuiKey_Space) || 
+        ImGui::IsKeyPressed(ImGuiKey_Enter) || 
+        ImGui::IsKeyPressed(ImGuiKey_Escape) ||
+        ImGui::IsMouseClicked(0) || 
+        ImGui::IsMouseClicked(1)) {
+        showSplashScreen = false;
+    }
 }
 
 void GUIApplication::renderMainMenuBar() {
@@ -1326,6 +1444,12 @@ void GUIApplication::renderStackWindow() {
 
         ImGui::Separator();
 
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+        ImGui::Text("Note: *SP (Stack Pointer)");
+        ImGui::PopStyleColor();
+
+        ImGui::Separator();
+
         if (ImGui::BeginTable("Stack", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
             ImGui::TableSetupColumn("Address");
             ImGui::TableSetupColumn("Offset");
@@ -1386,136 +1510,38 @@ void GUIApplication::renderStackWindow() {
             ImGui::EndTable();
         }
 
-        ImGui::Separator();
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
-        ImGui::Text("Note: SP (Stack Pointer)");
-        ImGui::PopStyleColor();
+        // ImGui::Separator();
     }
     ImGui::End();
 }
 
 void GUIApplication::renderFileDialog() {
-    if (!showFileDialog) {
-        return;
+    if (showFileDialog && !fileDialog->isOpen()) {
+        fileDialog->open();
+        ImGui::OpenPopup("Open Assembly File");
     }
-
-    std::string selectedFile = openFileDialog();
-    if (!selectedFile.empty()) {
-        if (loadAssemblyFile(selectedFile)) {
-            syncEditorBuffer();
-            assemblyEditorModified = false;
+    
+    if (fileDialog->display("Open Assembly File")) {
+        std::string selectedFile = fileDialog->getSelectedFile();
+        if (!selectedFile.empty()) {
+            if (loadAssemblyFile(selectedFile)) {
+                syncEditorBuffer();
+                assemblyEditorModified = false;
+            }
         }
         showFileDialog = false;
-        return;
     }
-
-    if (ImGui::Begin("Open Assembly File", &showFileDialog, ImGuiWindowFlags_AlwaysAutoResize)) {
-        static char pathBuffer[512] = "./";
-        static std::vector<std::string> files;
-        static std::vector<std::string> directories;
-        static bool needRefresh = true;
-
-        if (needRefresh) {
-            files.clear();
-            directories.clear();
-
-            const char* testFiles[] = {"samples/sample_01.txt",
-                                       "samples/sample_02.txt",
-                                       "samples/sample_03.txt",
-                                       "samples/tui/sample_01.asm",
-                                       "samples/tui/sample_02.asm",
-                                       "samples/tui/test_ide.asm"};
-
-            for (const char* file : testFiles) {
-                std::ifstream test(file);
-                if (test.good()) {
-                    files.push_back(file);
-                }
-            }
-
-            needRefresh = false;
-        }
-
-        ImGui::Text("Current directory: %s", pathBuffer);
-        ImGui::Separator();
-
-        ImGui::Text("Assembly Files:");
-        for (size_t i = 0; i < files.size(); ++i) {
-            if (ImGui::Selectable(files[i].c_str())) {
-                if (loadAssemblyFile(files[i])) {
-                    syncEditorBuffer();
-                    assemblyEditorModified = false;
-                }
-                showFileDialog = false;
-                break;
-            }
-        }
-
-        ImGui::Separator();
-        ImGui::Text("Enter file path manually:");
-        static char manualPath[512] = "";
-        if (ImGui::InputText("##manualpath",
-                             manualPath,
-                             sizeof(manualPath),
-                             ImGuiInputTextFlags_EnterReturnsTrue)) {
-            if (strlen(manualPath) > 0) {
-                if (loadAssemblyFile(manualPath)) {
-                    syncEditorBuffer();
-                    assemblyEditorModified = false;
-                }
-                showFileDialog = false;
-            }
-        }
-
-        if (ImGui::Button("Cancel")) {
-            showFileDialog = false;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Refresh")) {
-            needRefresh = true;
-        }
+    
+    if (!fileDialog->isOpen() && showFileDialog) {
+        showFileDialog = false;
     }
-    ImGui::End();
 }
 
-std::string GUIApplication::openFileDialog(const std::string& title, const std::string& filters) {
-#ifdef _WIN32
-
-    OPENFILENAMEA ofn;
-    char szFile[260] = {0};
-
-    ZeroMemory(&ofn, sizeof(ofn));
-    ofn.lStructSize = sizeof(ofn);
-    ofn.lpstrFile = szFile;
-    ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = "Assembly Files\0*.asm;*.as;*.s\0All Files\0*.*\0";
-    ofn.nFilterIndex = 1;
-    ofn.lpstrFileTitle = NULL;
-    ofn.nMaxFileTitle = 0;
-    ofn.lpstrInitialDir = NULL;
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-
-    if (GetOpenFileNameA(&ofn)) {
-        return std::string(szFile);
+std::string GUIApplication::openFileDialog(const std::string& /* title */, const std::string& /* filters */) {
+    if (!fileDialog->isOpen()) {
+        fileDialog->open();
     }
     return "";
-#else
-
-    std::string command = "zenity --file-selection --title=\"" + title + "\"";
-    if (!filters.empty()) {
-        command += " --file-filter='Assembly files (" + filters + ")|" + filters + "'";
-        command += " --file-filter='All files|*'";
-    }
-
-    std::string result = executeCommand(command);
-    if (!result.empty()) {
-        return result;
-    }
-
-    command = "kdialog --getopenfilename . \"" + filters + "|Assembly files\"";
-    result = executeCommand(command);
-    return result;
-#endif
 }
 
 bool GUIApplication::isFileDialogAvailable() {
