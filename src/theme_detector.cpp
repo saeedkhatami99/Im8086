@@ -5,6 +5,7 @@
 #include <string>
 
 #ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
     #include <windows.h>
     #include <dwmapi.h>
     #pragma comment(lib, "dwmapi.lib")
@@ -26,18 +27,18 @@ Theme detectWindowsTheme() {
         DWORD dwData = 0;
         DWORD dwSize = sizeof(dwData);
         
-        LONG result = RegOpenKeyEx(
+        LONG result = RegOpenKeyExA(
             HKEY_CURRENT_USER,
-            L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+            "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
             0,
             KEY_READ,
             &hKey
         );
         
         if (result == ERROR_SUCCESS) {
-            result = RegQueryValueEx(
+            result = RegQueryValueExA(
                 hKey,
-                L"AppsUseDarkTheme",
+                "AppsUseDarkTheme",
                 nullptr,
                 &dwType,
                 reinterpret_cast<LPBYTE>(&dwData),
