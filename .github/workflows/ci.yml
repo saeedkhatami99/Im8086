@@ -133,7 +133,7 @@ jobs:
         run: |
           cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DCMAKE_CXX_FLAGS="/EHsc /W3"
-        shell: bash
+        shell: powershell
 
       - name: Build
         run: |
