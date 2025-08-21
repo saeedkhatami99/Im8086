@@ -36,8 +36,6 @@
 #define WINGDIAPI __declspec(dllimport)
 #define CALLBACK __stdcall
 
-#include <commdlg.h>
-
 #include <GL/gl.h>
 
 #ifndef GL_CLAMP_TO_EDGE
