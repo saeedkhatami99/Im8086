@@ -14,8 +14,19 @@
     #ifndef NOGDI
     #define NOGDI
     #endif
-    
+    #ifndef NOSERVICE
+    #define NOSERVICE
+    #endif
+    #ifndef NOMCX
+    #define NOMCX
+    #endif
+    #ifndef NOIME
+    #define NOIME
+    #endif
+
     #include <windows.h>
+    
+    #include <commdlg.h>
     
     #ifdef APIENTRY
     #undef APIENTRY
@@ -23,8 +34,27 @@
     #ifdef WINGDIAPI
     #undef WINGDIAPI
     #endif
+    #ifdef CALLBACK
+    #undef CALLBACK
+    #endif
+    #ifdef GLAPIENTRY
+    #undef GLAPIENTRY
+    #endif
 
-    #include <gl.h>
+    #define APIENTRY __stdcall
+    #define WINGDIAPI __declspec(dllimport)
+    #define CALLBACK __stdcall
+    #define GLAPIENTRY APIENTRY
+
+    #include <GL/gl.h>
+    
+    #ifndef GL_CLAMP_TO_EDGE
+    #define GL_CLAMP_TO_EDGE 0x812F
+    #endif
+    
+    #define popen _popen
+    #define pclose _pclose
+
 #else
     #include "platform_opengl.h"
 #endif

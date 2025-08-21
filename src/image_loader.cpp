@@ -3,6 +3,9 @@
 #ifdef _WIN32
 #include <io.h>
 #include <commdlg.h>
+#ifndef GL_CLAMP_TO_EDGE
+#define GL_CLAMP_TO_EDGE 0x812F
+#endif
 #endif
 
 #ifdef __APPLE__

@@ -1,10 +1,9 @@
 #define SDL_MAIN_HANDLED
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#define VC_EXTRALEAN
-#define NOGDI
+#include "opengl_modern.h"
+#else
+#include "platform_opengl.h"
 #endif
 
 #include "gui/gui_application.h"
