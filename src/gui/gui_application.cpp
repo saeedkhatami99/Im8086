@@ -10,7 +10,6 @@
 #include <sstream>
 #include <stdexcept>
 
-// Include SDL and OpenGL headers first to avoid conflicts with Windows GL headers
 #ifdef __APPLE__
     #include <SDL2/SDL.h>
     #include <SDL_opengl.h>
@@ -27,6 +26,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #define VC_EXTRALEAN
+#define NOGDI
 #include <windows.h>
 #include <commdlg.h>
 #include <io.h>
