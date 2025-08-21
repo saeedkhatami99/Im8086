@@ -6,7 +6,7 @@
 #else
     #include <GL/gl.h>
 #endif
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <vector>
 #include <string>
 

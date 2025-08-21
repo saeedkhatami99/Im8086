@@ -1,7 +1,7 @@
 #include "gui/splash_window.h"
 #include "image_loader.h"
 #ifdef __APPLE__
-    #include <SDL_image.h>
+    #include <SDL2/SDL_image.h>
 #else
     #include <SDL2/SDL_image.h>
 #endif
