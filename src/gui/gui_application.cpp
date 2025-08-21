@@ -6,13 +6,13 @@
 
 #ifdef _WIN32
 #include <io.h>
-#include <commdlg.h>
 #else
 #include <unistd.h>
 #endif
 
 #include "gui/gui_application.h"
 #include "image_loader.h"
+#include "platform_dialogs.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -1600,43 +1600,7 @@ void GUIApplication::renderFileDialog() {
 }
 
 std::string GUIApplication::openFileDialog(const std::string& title, const std::string& filters) {
-#ifdef _WIN32
-
-    OPENFILENAMEA ofn;
-    char szFile[260] = {0};
-
-    ZeroMemory(&ofn, sizeof(ofn));
-    ofn.lStructSize = sizeof(ofn);
-    ofn.lpstrFile = szFile;
-    ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = "Assembly Files\0*.asm;*.as;*.s\0All Files\0*.*\0";
-    ofn.nFilterIndex = 1;
-    ofn.lpstrFileTitle = NULL;
-    ofn.nMaxFileTitle = 0;
-    ofn.lpstrInitialDir = NULL;
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-
-    if (GetOpenFileNameA(&ofn)) {
-        return std::string(szFile);
-    }
-    return "";
-#else
-
-    std::string command = "zenity --file-selection --title=\"" + title + "\"";
-    if (!filters.empty()) {
-        command += " --file-filter='Assembly files (" + filters + ")|" + filters + "'";
-        command += " --file-filter='All files|*'";
-    }
-
-    std::string result = executeCommand(command);
-    if (!result.empty()) {
-        return result;
-    }
-
-    command = "kdialog --getopenfilename . \"" + filters + "|Assembly files\"";
-    result = executeCommand(command);
-    return result;
-#endif
+    return PlatformDialogs::openFileDialog();
 }
 
 bool GUIApplication::isFileDialogAvailable() {

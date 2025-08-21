@@ -396,6 +396,7 @@ if(BUILD_GUI)
         src/gui/main_gui.cpp
         src/gui/splash_window.cpp
         src/image_loader.cpp
+        src/platform_dialogs.cpp
     )
 endif()
 
@@ -559,6 +560,7 @@ if(BUILD_TESTS)
             src/gui/gui_application.cpp
             src/gui/splash_window.cpp
             src/image_loader.cpp
+            src/platform_dialogs.cpp
             ${CORE_SOURCES}
         )
         target_include_directories(test_gui PRIVATE 
