@@ -59,47 +59,94 @@ jobs:
           mkdir -p Im8086/resources
           mkdir -p Im8086/lib
 
-          cp Im8086 Im8086/ 2>/dev/null || true
-          cp test_emulator Im8086/ 2>/dev/null || true
-          if [ -f "test_gui" ]; then cp test_gui Im8086/; fi
-
-          cp ../samples/sample_*.txt Im8086/samples/txt/ 2>/dev/null || true
-          cp ../samples/tui/sample_*.asm Im8086/samples/asm/ 2>/dev/null || true
-
-          if [ -d "../resources" ]; then
-            cp ../resources/*.png Im8086/resources/ 2>/dev/null || true
+          echo "=== Checking built executables ==="
+          ls -la Im8086 test_emulator test_gui 2>/dev/null || echo "Some executables not found"
+          
+          echo "=== Copying main executable ==="
+          if [ -f "Im8086" ]; then
+            cp Im8086 Im8086/
+            echo "✓ Im8086 executable copied successfully"
+          else
+            echo "❌ ERROR: Im8086 executable not found!"
+            echo "Available files in build directory:"
+            ls -la
+            exit 1
+          fi
+          
+          echo "=== Copying test executables ==="
+          if [ -f "test_emulator" ]; then
+            cp test_emulator Im8086/
+            echo "✓ test_emulator copied successfully"
+          else
+            echo "❌ ERROR: test_emulator not found!"
+            exit 1
+          fi
+          
+          if [ -f "test_gui" ]; then
+            cp test_gui Im8086/
+            echo "✓ test_gui copied successfully"
+          else
+            echo "⚠️  WARNING: test_gui not found (may not be built on this platform)"
           fi
 
-          if [ -f "Im8086/Im8086" ]; then
-            echo "Detecting and bundling shared libraries..."
+          echo "=== Copying sample files ==="
+          cp ../samples/sample_*.txt Im8086/samples/txt/ 2>/dev/null || echo "No .txt samples found"
+          cp ../samples/tui/sample_*.asm Im8086/samples/asm/ 2>/dev/null || echo "No .asm samples found"
 
-            LIBS=$(ldd Im8086/Im8086 | grep -E "(SDL2|ncurses|tinfo|GL)" | awk '{print $3}' | grep -v "not found" | sort -u)
+          echo "=== Copying resource files ==="
+          if [ -d "../resources" ]; then
+            cp ../resources/*.png Im8086/resources/ 2>/dev/null || echo "No PNG resources found"
+          fi
+
+          echo "=== Detecting and bundling shared libraries ==="
+          if [ -f "Im8086/Im8086" ]; then
+            echo "Analyzing dependencies of Im8086 executable..."
             
-            for lib in $LIBS; do
-              if [ -f "$lib" ]; then
-                echo "Bundling library: $lib"
-                cp "$lib" Im8086/lib/
-                
-                lib_name=$(basename "$lib")
-                lib_base=$(echo "$lib_name" | sed 's/\.so\..*/\.so/')
-                if [ "$lib_base" != "$lib_name" ]; then
-                  lib_dir=$(dirname "$lib")
-                  find "$lib_dir" -name "$lib_base*" -type f -exec cp {} Im8086/lib/ \; 2>/dev/null || true
+            LIBS=$(ldd Im8086/Im8086 2>/dev/null | grep -E "(SDL2|ncurses|tinfo|GL)" | awk '{print $3}' | grep -v "not found" | sort -u)
+            
+            if [ -n "$LIBS" ]; then
+              echo "Found dependencies to bundle:"
+              for lib in $LIBS; do
+                if [ -f "$lib" ]; then
+                  echo "  Bundling: $lib"
+                  cp "$lib" Im8086/lib/
+                  
+                  lib_name=$(basename "$lib")
+                  lib_base=$(echo "$lib_name" | sed 's/\.so\..*/\.so/')
+                  if [ "$lib_base" != "$lib_name" ]; then
+                    lib_dir=$(dirname "$lib")
+                    find "$lib_dir" -name "$lib_base*" -type f -exec cp {} Im8086/lib/ \; 2>/dev/null || true
+                  fi
+                else
+                  echo "  ⚠️  Library not found: $lib"
                 fi
-              fi
-            done
+              done
+            else
+              echo "No external libraries found to bundle (statically linked or system libs only)"
+            fi
             
             if [ "$(ls -A Im8086/lib 2>/dev/null)" ]; then
+              echo "Creating portable launcher script..."
               echo '#!/bin/bash' > Im8086/launch.sh
               echo 'DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"' >> Im8086/launch.sh
               echo 'export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"' >> Im8086/launch.sh
               echo 'exec "$DIR/Im8086" "$@"' >> Im8086/launch.sh
               chmod +x Im8086/launch.sh
-              echo "Created portable launcher with bundled libraries"
+              echo "✓ Portable launcher created with bundled libraries"
               echo "Bundled libraries:"
               ls -la Im8086/lib/
+            else
+              echo "No libraries bundled - executable uses only system libraries"
             fi
+          else
+            echo "❌ ERROR: Im8086 executable not found in package directory!"
+            exit 1
           fi
+
+          echo "=== Final package contents ==="
+          find Im8086 -type f | head -20
+          echo "..."
+          echo "Total files: $(find Im8086 -type f | wc -l)"
 
           tar -czf Im8086-ubuntu-latest.tar.gz Im8086/
 
@@ -158,50 +205,89 @@ jobs:
           mkdir Im8086\resources
           mkdir Im8086\lib
 
-          copy Release\Im8086.exe Im8086\ 2>nul
-          copy Release\test_emulator.exe Im8086\ 2>nul
-          copy Release\test_gui.exe Im8086\ 2>nul
+          echo === Checking built executables ===
+          dir Release\Im8086.exe Release\test_emulator.exe Release\test_gui.exe 2>nul || echo Some executables not found
 
-          copy ..\samples\sample_*.txt Im8086\samples\txt\ 2>nul
-          copy ..\samples\tui\sample_*.asm Im8086\samples\asm\ 2>nul
-
-          if exist "..\resources\*.png" (
-            copy ..\resources\*.png Im8086\resources\ 2>nul
+          echo === Copying main executable ===
+          if exist "Release\Im8086.exe" (
+            copy Release\Im8086.exe Im8086\
+            echo ✓ Im8086.exe copied successfully
+          ) else (
+            echo ❌ ERROR: Im8086.exe not found!
+            echo Available files in Release directory:
+            dir Release\
+            exit /b 1
           )
 
-          echo Detecting and bundling DLL files...
+          echo === Copying test executables ===
+          if exist "Release\test_emulator.exe" (
+            copy Release\test_emulator.exe Im8086\
+            echo ✓ test_emulator.exe copied successfully
+          ) else (
+            echo ❌ ERROR: test_emulator.exe not found!
+            exit /b 1
+          )
+
+          if exist "Release\test_gui.exe" (
+            copy Release\test_gui.exe Im8086\
+            echo ✓ test_gui.exe copied successfully
+          ) else (
+            echo ⚠️ WARNING: test_gui.exe not found
+          )
+
+          echo === Copying sample files ===
+          copy ..\samples\sample_*.txt Im8086\samples\txt\ 2>nul || echo No .txt samples found
+          copy ..\samples\tui\sample_*.asm Im8086\samples\asm\ 2>nul || echo No .asm samples found
+
+          echo === Copying resource files ===
+          if exist "..\resources\*.png" (
+            copy ..\resources\*.png Im8086\resources\ 2>nul || echo No PNG resources found
+          )
+
+          echo === Detecting and bundling DLL files ===
+          echo Bundling SDL2 and related DLL files...
 
           if exist "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" (
             copy "C:\vcpkg\installed\x64-windows\bin\SDL2.dll" Im8086\lib\
-            echo SDL2.dll bundled to lib directory
+            echo ✓ SDL2.dll bundled
+          ) else (
+            echo ⚠️ SDL2.dll not found
           )
+          
           if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_ttf.dll" (
             copy "C:\vcpkg\installed\x64-windows\bin\SDL2_ttf.dll" Im8086\lib\
-            echo SDL2_ttf.dll bundled to lib directory
+            echo ✓ SDL2_ttf.dll bundled
           )
+          
           if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_image.dll" (
             copy "C:\vcpkg\installed\x64-windows\bin\SDL2_image.dll" Im8086\lib\
-            echo SDL2_image.dll bundled to lib directory
+            echo ✓ SDL2_image.dll bundled
           )
+          
           if exist "C:\vcpkg\installed\x64-windows\bin\SDL2_mixer.dll" (
             copy "C:\vcpkg\installed\x64-windows\bin\SDL2_mixer.dll" Im8086\lib\
-            echo SDL2_mixer.dll bundled to lib directory
+            echo ✓ SDL2_mixer.dll bundled
           )
 
+          echo Bundling additional DLL dependencies...
           for %%f in ("C:\vcpkg\installed\x64-windows\bin\*.dll") do (
-            if /I "%%~nxf" NEQ "SDL2.dll" (
-              copy "%%f" Im8086\lib\ 2>nul && echo %%~nxf bundled to lib directory
-            )
+            copy "%%f" Im8086\lib\ 2>nul && echo ✓ %%~nxf bundled
           )
 
-          echo Creating portable launcher...
+          echo === Creating portable launcher ===
           echo @echo off > Im8086\launch.bat
           echo echo Starting Im8086 Emulator... >> Im8086\launch.bat
           echo set "PATH=%%~dp0lib;%%PATH%%" >> Im8086\launch.bat
           echo %%~dp0Im8086.exe %%* >> Im8086\launch.bat
+          echo ✓ Portable launcher created
 
+          echo === Final package contents ===
+          echo Main executables:
+          dir /b Im8086\*.exe 2>nul || echo No executables found
           echo Bundled DLL files:
           dir /b Im8086\lib\*.dll 2>nul || echo No DLL files found in lib directory
+          echo Resource files:
+          dir /b Im8086\resources\*.png 2>nul || echo No PNG resources found
 
           powershell Compress-Archive -Path Im8086 -DestinationPath Im8086-windows-latest.zip
         shell: cmd
@@ -273,40 +359,87 @@ jobs:
           mkdir -p Im8086/resources
           mkdir -p Im8086/lib
 
-          cp Im8086 Im8086/ 2>/dev/null || true
-          cp test_emulator Im8086/ 2>/dev/null || true
-          if [ -f "test_gui" ]; then cp test_gui Im8086/; fi
-
-          cp ../samples/sample_*.txt Im8086/samples/txt/ 2>/dev/null || true
-          cp ../samples/tui/sample_*.asm Im8086/samples/asm/ 2>/dev/null || true
-
-          if [ -d "../resources" ]; then
-            cp ../resources/*.png Im8086/resources/ 2>/dev/null || true
+          echo "=== Checking built executables ==="
+          ls -la Im8086 test_emulator test_gui 2>/dev/null || echo "Some executables not found"
+          
+          echo "=== Copying main executable ==="
+          if [ -f "Im8086" ]; then
+            cp Im8086 Im8086/
+            echo "✓ Im8086 executable copied successfully"
+          else
+            echo "❌ ERROR: Im8086 executable not found!"
+            echo "Available files in build directory:"
+            ls -la
+            exit 1
+          fi
+          
+          echo "=== Copying test executables ==="
+          if [ -f "test_emulator" ]; then
+            cp test_emulator Im8086/
+            echo "✓ test_emulator copied successfully"
+          else
+            echo "❌ ERROR: test_emulator not found!"
+            exit 1
+          fi
+          
+          if [ -f "test_gui" ]; then
+            cp test_gui Im8086/
+            echo "✓ test_gui copied successfully"
+          else
+            echo "⚠️  WARNING: test_gui not found (may not be built on this platform)"
           fi
 
-          if [ -f "Im8086/Im8086" ]; then
-            echo "Detecting and bundling shared libraries for macOS..."
+          echo "=== Copying sample files ==="
+          cp ../samples/sample_*.txt Im8086/samples/txt/ 2>/dev/null || echo "No .txt samples found"
+          cp ../samples/tui/sample_*.asm Im8086/samples/asm/ 2>/dev/null || echo "No .asm samples found"
 
-            LIBS=$(otool -L Im8086/Im8086 | grep -E "(SDL2|ncurses|tinfo)" | awk '{print $1}' | grep -v "Im8086" | grep -v "/usr/lib" | grep -v "/System/Library")
+          echo "=== Copying resource files ==="
+          if [ -d "../resources" ]; then
+            cp ../resources/*.png Im8086/resources/ 2>/dev/null || echo "No PNG resources found"
+          fi
+
+          echo "=== Detecting and bundling shared libraries for macOS ==="
+          if [ -f "Im8086/Im8086" ]; then
+            echo "Analyzing dependencies of Im8086 executable..."
+
+            LIBS=$(otool -L Im8086/Im8086 2>/dev/null | grep -E "(SDL2|ncurses|tinfo)" | awk '{print $1}' | grep -v "Im8086" | grep -v "/usr/lib" | grep -v "/System/Library")
             
-            for lib in $LIBS; do
-              if [ -f "$lib" ]; then
-                echo "Bundling library: $lib"
-                cp "$lib" Im8086/lib/
-              fi
-            done
+            if [ -n "$LIBS" ]; then
+              echo "Found dependencies to bundle:"
+              for lib in $LIBS; do
+                if [ -f "$lib" ]; then
+                  echo "  Bundling: $lib"
+                  cp "$lib" Im8086/lib/
+                else
+                  echo "  ⚠️  Library not found: $lib"
+                fi
+              done
+            else
+              echo "No external libraries found to bundle (using system frameworks only)"
+            fi
             
             if [ "$(ls -A Im8086/lib 2>/dev/null)" ]; then
+              echo "Creating portable launcher script for macOS..."
               echo '#!/bin/bash' > Im8086/launch.sh
               echo 'DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"' >> Im8086/launch.sh
               echo 'export DYLD_LIBRARY_PATH="$DIR/lib:$DYLD_LIBRARY_PATH"' >> Im8086/launch.sh
               echo 'exec "$DIR/Im8086" "$@"' >> Im8086/launch.sh
               chmod +x Im8086/launch.sh
-              echo "Created portable launcher with bundled libraries for macOS"
+              echo "✓ Portable launcher created with bundled libraries for macOS"
               echo "Bundled libraries:"
               ls -la Im8086/lib/
+            else
+              echo "No libraries bundled - executable uses only system frameworks"
             fi
+          else
+            echo "❌ ERROR: Im8086 executable not found in package directory!"
+            exit 1
           fi
+
+          echo "=== Final package contents ==="
+          find Im8086 -type f | head -20
+          echo "..."
+          echo "Total files: $(find Im8086 -type f | wc -l)"
 
           tar -czf Im8086-macos-latest.tar.gz Im8086/
 
