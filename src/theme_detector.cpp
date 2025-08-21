@@ -9,10 +9,7 @@
     #include <dwmapi.h>
     #pragma comment(lib, "dwmapi.lib")
 #elif defined(__APPLE__)
-    #include <CoreFoundation/CoreFoundation.h>
-    #include <objc/objc.h>
-    #include <objc/runtime.h>
-    #include <objc/message.h>
+    #include <cstdio>
 #else
     #include <unistd.h>
     #include <pwd.h>
@@ -79,28 +76,27 @@ Theme detectWindowsTheme() {
 
 #elif defined(__APPLE__)
 Theme detectMacOSTheme() {
-    @autoreleasepool {
-        try {
-            id userDefaults = objc_msgSend((id)objc_getClass("NSUserDefaults"), sel_registerName("standardUserDefaults"));
-            
-            id interfaceStyle = objc_msgSend(userDefaults, sel_registerName("stringForKey:"), 
-                                           objc_msgSend((id)objc_getClass("NSString"), sel_registerName("stringWithUTF8String:"), "AppleInterfaceStyle"));
-            
-            if (interfaceStyle) {
-                const char* styleString = (const char*)objc_msgSend(interfaceStyle, sel_registerName("UTF8String"));
-                if (styleString && strcmp(styleString, "Dark") == 0) {
-                    return Theme::DARK;
-                }
-            }
-            
-            return Theme::LIGHT;
-            
-        } catch (...) {
-            std::cerr << "Error detecting macOS theme" << std::endl;
-        }
+    FILE* pipe = popen("defaults read -g AppleInterfaceStyle 2>/dev/null", "r");
+    if (!pipe) {
+        return Theme::UNKNOWN;
     }
     
-    return Theme::UNKNOWN;
+    char buffer[256];
+    std::string result = "";
+    while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
+        result += buffer;
+    }
+    pclose(pipe);
+    
+    result.erase(result.find_last_not_of(" \n\r\t") + 1);
+    
+    if (result == "Dark") {
+        return Theme::DARK;
+    } else if (result.empty() || result.find("does not exist") != std::string::npos) {
+        return Theme::LIGHT;
+    }
+    
+    return Theme::LIGHT;
 }
 
 #else
