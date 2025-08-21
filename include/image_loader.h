@@ -6,6 +6,7 @@
 #define NOMINMAX
 #define VC_EXTRALEAN
 #define NOGDI
+#include <windows.h> 
 #endif
 
 #ifdef __APPLE__
